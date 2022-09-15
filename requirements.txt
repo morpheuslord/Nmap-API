@@ -14,5 +14,3 @@ json2html
 lxml
 xmltodict
 requests
-pandas
-
