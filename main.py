@@ -108,4 +108,4 @@ api.add_resource(p4, "/api/p4/<string:url>")
 api.add_resource(p5, "/api/p5/<string:url>")
 
 if __name__ == '__main__':
-    app.run(host="172.105.57.131", port="5010")
+    app.run(host="127.0.0.1", port="5010")
