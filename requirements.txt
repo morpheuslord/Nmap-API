@@ -26,11 +26,8 @@ cryptography==36.0.2
 curio==1.5
 dicttoxml==1.7.4
 distlib==0.3.6
-dnspython==2.2.1
-dnsrecon==0.10.1
 ecdsa==0.17.0
 email-validator==1.1.3
-esptool==3.3
 filelock==3.8.0
 Flask==1.1.2
 Flask-API==3.0.post1
@@ -52,7 +49,6 @@ google-auth-oauthlib==0.4.6
 google-pasta==0.2.0
 greenlet==1.1.3
 grpcio==1.47.0
-gunicorn==20.1.0
 h11==0.12.0
 h2==4.1.0
 h5py==3.7.0
@@ -78,7 +74,6 @@ Markdown==3.4.1
 MarkupSafe==1.1.1
 marshmallow==3.18.0
 marshmallow-sqlalchemy==0.28.1
-mysql-connector-python==8.0.29
 netaddr==0.8.0
 nose==1.3.7
 numpy==1.23.1
@@ -86,9 +81,7 @@ oauthlib==3.2.0
 opt-einsum==3.3.0
 outcome==1.2.0
 packaging==21.3
-pandas==1.4.3
 paramiko==2.10.3
-pipenv==2022.9.21
 platformdirs==2.5.2
 pluggy==1.0.0
 ply==3.11
