@@ -6,6 +6,7 @@ import lxml
 import sqlite3
 from lxml import etree
 from flask_restful import Api, Resource
+import re
 
 app = Flask(__name__)
 api = Api(app)
@@ -20,63 +21,110 @@ def db_connection():
         print(e)
     return conn
 
+def s_u(username):
+  # Remove any characters that are not letters, numbers, or underscores
+  sanitized_username = re.sub(r'[^\w]', '', username)
+  # Remove any leading or trailing spaces
+  sanitized_username = sanitized_username.strip()
+  return sanitized_username
+
+def s_p(password):
+  # Remove any leading or trailing spaces
+  sanitized_password = password.strip()
+  return sanitized_password
+
 # Add Userdata
-@app.route('/adduser/<uid>/<username>/<passwd>', methods=['POST'])
-def add_user(uid, username, passwd):
+@app.route('/adduser/<auser>:<apass>/<uid>/<username>/<passwd>', methods=['POST'])
+def add_user(uid, username, passwd,auser, apass):
     conn = db_connection()
     cursor = conn.cursor()
+    auser1 = s_u(auser)
+    apass1 = s_p(apass)
     new_id = uid
-    new_user = username
-    new_passwd = passwd
-    sql = """INSERT INTO users (id, username, passwd) VALUES (?, ?, ?)"""
-    cursor = cursor.execute(sql, (new_id, new_user, new_passwd))
-    conn.commit()
+    new_user = s_u(username)
+    new_passwd = s_p(passwd)
+    sql1 = """ SELECT username, passwd FROM users WHERE username = ? AND passwd = ?"""
+    usernamecheck = cursor.execute(sql1, (auser1,apass1))
+    if not usernamecheck.fetchone():
+            return [{"error":"admin passwd or admin username error"}]
+    else:
+        sql = """INSERT INTO users (id, username, passwd) VALUES (?, ?, ?)"""
+        cursor = cursor.execute(sql, (new_id, new_user, new_passwd))
+        conn.commit()
     return f'["added": {[{"ID":new_id}], [{"Username":new_user}], [{"Password": new_passwd}]} ]'
 
-@app.route('/altusername/<uid>/<username>', methods=['POST'])
-def alt_user(uid, username):
+@app.route('/altusername/<auser>:<apass>/<uid>/<username>', methods=['POST'])
+def alt_user(uid, username, auser, apass):
     conn = db_connection()
     cursor = conn.cursor()
     new_id = uid
-    new_user = username
-    sql = """UPDATE users SET (username=?) WHERE id=?"""
-    cursor = cursor.execute(sql, (new_user, new_id))
-    conn.commit()
-    return f'Updated {[{new_id : new_user}]} '
+    new_user = s_u(username)
+    auser1=s_u(auser)
+    apass1=s_p(apass)
+    sql1 = """ SELECT username, passwd FROM users WHERE username = ? AND passwd = ?"""
+    usernamecheck = cursor.execute(sql1, (auser1,apass1))
+    if not usernamecheck.fetchone():
+            return [{"error":"admin passwd or admin username error"}]
+    else:
+        sql = """UPDATE users SET (username=?) WHERE id=?"""
+        cursor = cursor.execute(sql, (new_user, new_id))
+        conn.commit()
+        return f'Updated {[{new_id : new_user}]} '
 
-@app.route('/altpasswd/<username>/<passwd>', methods=['POST'])
-def alt_passwd(username, passwd):
+@app.route('/altpasswd/<auser>:<apass>/<username>/<passwd>', methods=['POST'])
+def alt_passwd(username, passwd, auser, apass):
     conn = db_connection()
     cursor = conn.cursor()
-    new_user = username
-    new_passwd = passwd
-    sql = """UPDATE users SET passwd=? WHERE username=?"""
-    cursor = cursor.execute(sql, ( new_passwd, new_user))
-    conn.commit()
-    return f'Updated {[{new_user : new_passwd}]} '
+    new_user = s_u(username)
+    new_passwd = s_p(passwd)
+    auser1=s_u(auser)
+    apass1=s_p(apass)
+    sql1 = """ SELECT username, passwd FROM users WHERE username = ? AND passwd = ?"""
+    usernamecheck = cursor.execute(sql1, (auser1,apass1))
+    if not usernamecheck.fetchone():
+            return [{"error":"admin passwd or admin username error"}]
+    else:
+        sql = """UPDATE users SET passwd=? WHERE username=?"""
+        cursor = cursor.execute(sql, ( new_passwd, new_user))
+        conn.commit()
+        return f'Updated {[{new_user : new_passwd}]} '
 
-@app.route('/altid/<uid>/<usern>', methods=['POST'])
-def alt_id(uid, usern):
+@app.route('/altid/<auser>:<apass>/<uid>/<usern>', methods=['POST'])
+def alt_id(uid, usern, auser, apass):
     conn = db_connection()
     cursor = conn.cursor()
     new_id = uid
-    username = usern
-    sql = """UPDATE users SET id=? WHERE username=?"""
-    cursor = cursor.execute(sql, ( new_id, username))
-    conn.commit()
-    return f'Updated {[{new_id : username}]} '
+    username = s_u(usern)
+    auser1=s_u(auser)
+    apass1=s_p(apass)
+    sql1 = """ SELECT username, passwd FROM users WHERE username = ? AND passwd = ?"""
+    usernamecheck = cursor.execute(sql1, (auser1,apass1))
+    if not usernamecheck.fetchone():
+            return [{"error":"admin passwd or admin username error"}]
+    else:
+        sql = """UPDATE users SET id=? WHERE username=?"""
+        cursor = cursor.execute(sql, ( new_id, username))
+        conn.commit()
+        return f'Updated {[{new_id : username}]} '
 
 
-@app.route('/deluser/<uname>/<upass>', methods=['POST'])
-def deluser(uname, upass):
+@app.route('/deluser/<auser>:<apass>/<uname>/<upass>', methods=['POST'])
+def deluser(uname, upass, auser, apass):
     conn = db_connection()
     cursor = conn.cursor()
-    username = uname
-    passwd = upass
-    sql = """DELETE from users where username=? AND passwd=?"""
-    cursor = cursor.execute(sql, (username, passwd))
-    conn.commit()
-    return f'Removed {[{"Username":username}]} '
+    username = s_u(uname)
+    passwd = s_p(upass)
+    auser1=s_u(auser)
+    apass1=s_p(apass)
+    sql1 = """ SELECT username, passwd FROM users WHERE username = ? AND passwd = ?"""
+    usernamecheck = cursor.execute(sql1, (auser1,apass1))
+    if not usernamecheck.fetchone():
+            return [{"error":"admin passwd or admin username error"}]
+    else:
+        sql = """DELETE from users where username=? AND passwd=?"""
+        cursor = cursor.execute(sql, (username, passwd))
+        conn.commit()
+        return f'Removed {[{"Username":username}]} '
 
 # class altpasswd2(Resource):
 #     def POST(self, username, password):
@@ -108,8 +156,10 @@ class p1(Resource):
         # Nmap Execution command
         conn = db_connection()
         cursor = conn.cursor()
+        un = s_u(username)
+        pa = s_p(password)
         sql = """ SELECT username, passwd FROM users WHERE username = ? AND passwd = ?"""
-        usernamecheck = cursor.execute(sql, (username,password))
+        usernamecheck = cursor.execute(sql, (un,pa))
         if not usernamecheck.fetchone():
             return [{"error":"passwd or username error"}]
         else:
@@ -134,8 +184,10 @@ class p2(Resource):
         # Nmap Execution command
         conn = db_connection()
         cursor = conn.cursor()
-        sql = """ SELECT COUNT(*) FROM users WHERE username = ? AND passwd = ?"""
-        usernamecheck = cursor.execute(sql, (username,password))
+        un = s_u(username)
+        pa = s_p(password)
+        sql = """ SELECT username, passwd FROM users WHERE username = ? AND passwd = ?"""
+        usernamecheck = cursor.execute(sql, (un,pa))
         if not usernamecheck.fetchone():
             return [{"error":"passwd or username error"}]
         else:
@@ -160,8 +212,10 @@ class p3(Resource):
         # Nmap Execution command
         conn = db_connection()
         cursor = conn.cursor()
-        sql = """ SELECT COUNT(*) FROM users WHERE username = ? AND passwd = ?"""
-        usernamecheck = cursor.execute(sql, (username,password))
+        un = s_u(username)
+        pa = s_p(password)
+        sql = """ SELECT username, passwd FROM users WHERE username = ? AND passwd = ?"""
+        usernamecheck = cursor.execute(sql, (un,pa))
         if not usernamecheck.fetchone():
             return [{"error":"passwd or username error"}]
         else:
@@ -185,8 +239,10 @@ class p4(Resource):
         # Nmap Execution command
         conn = db_connection()
         cursor = conn.cursor()
-        sql = """ SELECT COUNT(*) FROM users WHERE username = ? AND passwd = ?"""
-        usernamecheck = cursor.execute(sql, (username,password))
+        un = s_u(username)
+        pa = s_p(password)
+        sql = """ SELECT username, passwd FROM users WHERE username = ? AND passwd = ?"""
+        usernamecheck = cursor.execute(sql, (un,pa))
         if not usernamecheck.fetchone():
             return [{"error":"passwd or username error"}]
         else:
@@ -210,8 +266,10 @@ class p5(Resource):
         # Nmap Execution command
         conn = db_connection()
         cursor = conn.cursor()
-        sql = """ SELECT COUNT(*) FROM users WHERE username = ? AND passwd = ?"""
-        usernamecheck = cursor.execute(sql, (username,password))
+        un = s_u(username)
+        pa = s_p(password)
+        sql = """ SELECT username, passwd FROM users WHERE username = ? AND passwd = ?"""
+        usernamecheck = cursor.execute(sql, (un,pa))
         if not usernamecheck.fetchone():
             return [{"error":"passwd or username error"}]
         else:
