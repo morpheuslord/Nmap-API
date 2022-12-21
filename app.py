@@ -21,7 +21,7 @@ def db_connection():
         print(e)
     return conn
 
-def s_u(username):
+def s_user(username):
   # Remove any characters that are not letters, numbers, or underscores
   sanitized_username = re.sub(r'[^\w]', '', username)
   # Remove any leading or trailing spaces
@@ -38,10 +38,10 @@ def s_p(password):
 def add_user(uid, username, passwd,auser, apass):
     conn = db_connection()
     cursor = conn.cursor()
-    auser1 = s_u(auser)
+    auser1 = s_user(auser)
     apass1 = s_p(apass)
     new_id = uid
-    new_user = s_u(username)
+    new_user = s_user(username)
     new_passwd = s_p(passwd)
     sql1 = """ SELECT username, passwd FROM users WHERE username = ? AND passwd = ?"""
     usernamecheck = cursor.execute(sql1, (auser1,apass1))
@@ -58,8 +58,8 @@ def alt_user(uid, username, auser, apass):
     conn = db_connection()
     cursor = conn.cursor()
     new_id = uid
-    new_user = s_u(username)
-    auser1=s_u(auser)
+    new_user = s_user(username)
+    auser1=s_user(auser)
     apass1=s_p(apass)
     sql1 = """ SELECT username, passwd FROM users WHERE username = ? AND passwd = ?"""
     usernamecheck = cursor.execute(sql1, (auser1,apass1))
@@ -75,9 +75,9 @@ def alt_user(uid, username, auser, apass):
 def alt_passwd(username, passwd, auser, apass):
     conn = db_connection()
     cursor = conn.cursor()
-    new_user = s_u(username)
+    new_user = s_user(username)
     new_passwd = s_p(passwd)
-    auser1=s_u(auser)
+    auser1=s_user(auser)
     apass1=s_p(apass)
     sql1 = """ SELECT username, passwd FROM users WHERE username = ? AND passwd = ?"""
     usernamecheck = cursor.execute(sql1, (auser1,apass1))
@@ -94,8 +94,8 @@ def alt_id(uid, usern, auser, apass):
     conn = db_connection()
     cursor = conn.cursor()
     new_id = uid
-    username = s_u(usern)
-    auser1=s_u(auser)
+    username = s_user(usern)
+    auser1=s_user(auser)
     apass1=s_p(apass)
     sql1 = """ SELECT username, passwd FROM users WHERE username = ? AND passwd = ?"""
     usernamecheck = cursor.execute(sql1, (auser1,apass1))
@@ -112,9 +112,9 @@ def alt_id(uid, usern, auser, apass):
 def deluser(uname, upass, auser, apass):
     conn = db_connection()
     cursor = conn.cursor()
-    username = s_u(uname)
+    username = s_user(uname)
     passwd = s_p(upass)
-    auser1=s_u(auser)
+    auser1=s_user(auser)
     apass1=s_p(apass)
     sql1 = """ SELECT username, passwd FROM users WHERE username = ? AND passwd = ?"""
     usernamecheck = cursor.execute(sql1, (auser1,apass1))
@@ -156,7 +156,7 @@ class p1(Resource):
         # Nmap Execution command
         conn = db_connection()
         cursor = conn.cursor()
-        un = s_u(username)
+        un = s_user(username)
         pa = s_p(password)
         sql = """ SELECT username, passwd FROM users WHERE username = ? AND passwd = ?"""
         usernamecheck = cursor.execute(sql, (un,pa))
@@ -184,7 +184,7 @@ class p2(Resource):
         # Nmap Execution command
         conn = db_connection()
         cursor = conn.cursor()
-        un = s_u(username)
+        un = s_user(username)
         pa = s_p(password)
         sql = """ SELECT username, passwd FROM users WHERE username = ? AND passwd = ?"""
         usernamecheck = cursor.execute(sql, (un,pa))
@@ -212,7 +212,7 @@ class p3(Resource):
         # Nmap Execution command
         conn = db_connection()
         cursor = conn.cursor()
-        un = s_u(username)
+        un = s_user(username)
         pa = s_p(password)
         sql = """ SELECT username, passwd FROM users WHERE username = ? AND passwd = ?"""
         usernamecheck = cursor.execute(sql, (un,pa))
@@ -239,7 +239,7 @@ class p4(Resource):
         # Nmap Execution command
         conn = db_connection()
         cursor = conn.cursor()
-        un = s_u(username)
+        un = s_user(username)
         pa = s_p(password)
         sql = """ SELECT username, passwd FROM users WHERE username = ? AND passwd = ?"""
         usernamecheck = cursor.execute(sql, (un,pa))
@@ -266,7 +266,7 @@ class p5(Resource):
         # Nmap Execution command
         conn = db_connection()
         cursor = conn.cursor()
-        un = s_u(username)
+        un = s_user(username)
         pa = s_p(password)
         sql = """ SELECT username, passwd FROM users WHERE username = ? AND passwd = ?"""
         usernamecheck = cursor.execute(sql, (un,pa))
