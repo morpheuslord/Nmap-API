@@ -10,7 +10,7 @@ This is a implementation for our college PCL project which is still under develo
 
 #### Get all items
 
-```
+```url
   GET /api/p1/{username}:{password}/{target}
   GET /api/p2/{username}:{password}/{target}
   GET /api/p3/{username}:{password}/{target}
@@ -26,7 +26,7 @@ This is a implementation for our college PCL project which is still under develo
 
 #### Get item
 
-```
+```url
   GET /api/p1/
   GET /api/p2/
   GET /api/p3/
@@ -45,13 +45,15 @@ This is a implementation for our college PCL project which is still under develo
 
 #### Auth and User management
 
-```
+```url
   POST /adduser/{admin-username}:{admin-passwd}/{id}/{username}/{passwd}
   POST /deluser/{admin-username}:{admin-passwd}/{t-username}/{t-userpass}
   POST /altusername/{admin-username}:{admin-passwd}/{t-user-id}/{new-t-username}
   POST /altuserid/{admin-username}:{admin-passwd}/{new-t-user-id}/{t-username}
   POST /altpassword/{admin-username}:{admin-passwd}/{t-username}/{new-t-userpass}
 ```
+* make sure you use the ADMIN CREDS MENTIONED BELOW
+
 | Parameter | Type     | Description                |
 | :-------- | :------- | :------------------------- |
 |`admin-username`|`String`|Admin username|
