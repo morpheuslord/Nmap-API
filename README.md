@@ -10,7 +10,7 @@ This is a implementation for our college PCL project which is still under develo
 
 #### Get all items
 
-```http
+```text
   GET /api/p1/{auth_key}/{target}
   GET /api/p2/{auth_key}/{target}
   GET /api/p3/{auth_key}/{target}
@@ -25,7 +25,7 @@ This is a implementation for our college PCL project which is still under develo
 
 #### Get item
 
-```http
+```text
   GET /api/p1/
   GET /api/p2/
   GET /api/p3/
@@ -44,7 +44,7 @@ This is a implementation for our college PCL project which is still under develo
 
 #### Auth and User management
 
-```http
+```text
   GET /register/<int:user_id>/<string:password>
 ```
 | Parameter | Type     | Description                |
