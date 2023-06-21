@@ -1,0 +1,56 @@
+{% extends 'base.html' %}
+
+{% block content %}
+        <center>
+        <h1>Scanner Input Section</h1>
+        </center>
+        <center>
+        <form action="/result", method="POST">
+        <label for="fname">IP/Host:</label><br>
+        <input type="text\number" id="fname" name="iporhost">
+        <br>
+        <br>
+        <table id="container", class="table table-dark">
+                <tr>
+                        <th>Select</th>
+                        <th>Profile</th>
+                        <th>Description</th>
+                        <tr>
+                                <td><input type="checkbox" value="1" name="profile"></td>
+                                <td>Profile 1</td>
+                                <td> -Pn -sV -T4 -O -F </td>
+
+                        </tr>
+                        <tr>
+                                <td><input type="checkbox" value="2" name="profile"></td>
+                                <td>Profile 2</td>
+                                <td> -Pn -T4 -A -v </td>
+                        </tr>
+                        <tr>
+                                <td><input type="checkbox" value="3" name="profile"></td>
+                                <td>Profile 3</td>
+                                <td> -Pn -sS -sU -T4 -A -v </td>
+                        </tr>
+                        <tr>
+                                <td><input type="checkbox" value="4" name="profile"></td>
+                                <td>Profile 4</td>
+                                <td> -Pn -p- -T4 -A -v </td>
+                        </tr>
+                        <tr>
+                                <td><input type="checkbox" value="5" name="profile"></td>
+                                <td>Profile 5</td>
+                                <td> -Pn -sS -p- --script=vuln </td>
+                        </tr>
+                        <tr>
+                                <td><input type="checkbox" value="6" name="profile"></td>
+                                <td>Profile 6</td>
+                                <td> -Pn -sS -sU -T4 -A -PE -PP -PS80,443 -PA3389 -PU40125 -PY -g 53 --script=vuln </td>
+                        </tr>
+                </tr>
+        </table>
+        <br>
+        <input type="submit" value="Submit" class="btn_one">
+        </form>
+        </center>
+
+{% endblock %}

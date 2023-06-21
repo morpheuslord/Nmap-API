@@ -1,0 +1,42 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <div id="header" class="animated slideInDown" style="animation-delay:1s;">
+    <div id="title"></div><br>
+    <div id="links">
+		    <a href="\">HOME</a>
+    	    <a href="\doc">DOCS</a>
+    </div>
+    </div>
+
+    <center>
+    <div id="middle">
+	<div class="text-change-container">
+  	<div class="text-change"></div>
+	</div><div class="text-change-container">
+  	<div class="text-change"></div>
+	</div>
+  	<script  src="./script.js"></script>
+	<div id="tagline" class="animated zoomIn" style="animation-delay:1s;">
+            Welcome to PCL scanner project.<br>
+            <button class="btn_one" href="\scanner">Move to scanner section to use</button>
+    </div>
+    </div>
+    </center>
+    <br><br><br><br><br><br>
+    <div id="portfolio">
+        <div id="about">
+            <h2>Info</h2>
+            <p style="color:orangered">Members</p>
+            <ul>
+                <li>Chiranjeevi G</li>
+                <li>R Abhishek Reddy</li>
+            </ul>
+            <br>
+            <p>This Web-page is a direct implementation of our Nmap-API it functions by taking user input the input is forwarded to the API and a json output is received which is converted to html.</p>
+            <p>The Aim is to create an effective API that can be used for higher end applications by multiple uses as the currently available API's are low powered compared to what an actual application can achieve.</p>
+            <p>We are implementing a easy to use api which has multiple profiles or scan options which uses nmap program to conduct scans and export the scans over the internet via API for more innovative and effective use, the API is easy to implement and can run on all Operating systems or dev environments as the API itself is running on a linux server doing most of the intense work.</p>
+            <p>The implementation part and the API working is explained in the documentation section of this web page.</p>
+        </div>
+    </div>
+{% endblock %}

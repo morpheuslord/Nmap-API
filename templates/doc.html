@@ -1,0 +1,323 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+    <div id="porfolio">
+        <div="about">
+            <div id="header1" class="animated slideInDown" style="animation-delay:1s;">
+                <div id="title"></div><br>
+                <div id="links">
+                        <a href="\">Home</a>
+                        <a href="#modules">Modules</a>
+                        <a href="#api">API working</a>
+                        <a href="#web-report" style="margin:0px 30px;">Web and report</a>
+                </div>
+            </div>
+        </div>
+        <br><br><br><br><br><br><br><br>
+
+    </div>
+    <div id="portfolio">
+        <div id="modules">
+            <div id="tagline" class="animated zoomIn" style="animation-delay:1s;">
+                <button class="btn_one" href="\scanner" style="color:orangered">Modules and Programs Used</button>
+            </div>
+            <ul>
+                <li>	Python3       - Main programming Language.</li>
+                <li>	Flask         - Python module for Web Based application development</li>
+                <li>   	Flask_Restful - Python module For Rest API development.</li>
+                <li>  	Subprocesses  - Python module To run system based subprocesses.</li>
+                <li>	Lxml          - Python module to parse xml data based on xsl spreadsheet.</li>
+                <li>   	Json          - Python module to convert converted xml data to API returnable json format.</li>
+                <li>   	Nmap          - Pre-compiled Network mapper software for Network scanning.</li>
+            </ul>
+        </div>
+        <div id="api">
+            <div id="tagline" class="animated zoomIn" style="animation-delay:1s;">
+                <button class="btn_one" href="\scanner" style="color:orangered">API working</button>
+            </div>
+            <ul>
+                <li> API takes 1 argument in its URL (“  /api/p1/<string:url>   ”) where the string part is for the argument.</li>
+	            <li> After receiving the argument, the API runs the subprocess nmap with the argument or the HOSTNAME/IP provided by the client.</li>
+	            <li>It runs the scan and stores the .xml file with the HOSTNAME or IP provided then further converts it into a JSON using the lxml and xmltodict module. Finally the json data is returned to the user.</li>
+            </ul>
+            <br>
+            <p style="color:orangered">Scanner and Profiling</p>
+            <p>The API currently has 5 profiles each having different intensity of scans</p>
+            <ul>
+                <li>Profile-1: Is the efficient scan which does not require much power and time to scan.</li>
+                <li>Profile-2: Is the simple scan which does a fairly good work in gathering juicy information.</li>
+                <li>Profile-3: Is the Low latency scan which concentrates on digging deeper into the services for vulners detection.</li>
+                <li>Profile-4: Is the semi intense scan which scans the targets internals and all the available ports to find the most effective vulnerability.</li>
+                <li>Profile-5: Is the complete intense scan used to scan all the ports compare the services with a vulnerable database and also give a detailed report on it.</li>
+            </ul>
+            <br>
+            <p style="color:orangered">Basic Implementation</p>
+            <p>Using the API is fairly simple the developer must do a call to the API URL based on the type of scan they want to use. For example: call to return a scan using Profile-1</p>
+            <pre>
+                <code style="color:white">
+                  # USING PYTHON
+                  import requests
+                  import json
+
+                  target = "test.com"
+                  request_data = requests.get("https://api.pcl.net/api/p1/{}".format(target))
+                  print(request_data.json())
+
+                  # USING CURL
+                  $ curl GET https://api.pcl.net/api/p1/test.com
+                </code>
+              </pre>
+            <p style="color:orangered">The Output</p>
+            <pre>
+                <code style="color:white">
+                    {
+                        "nmaprun": {
+                            "@args": "nmap -Pn -sV -T4 -O -F -oX 0.0.0.0.xml 0.0.0.0",
+                            "@scanner": "nmap",
+                            "@start": "1662457611",
+                            "@startstr": "Tue Sep  6 09:46:51 2022",
+                            "@version": "7.80",
+                            "@xmloutputversion": "1.04",
+                            "debugging": {
+                                "@level": "0"
+                            },
+                            "host": {
+                                "@endtime": "1662457624",
+                                "@starttime": "1662457611",
+                                "address": {
+                                    "@addr": "0.0.0.0",
+                                    "@addrtype": "ipv4"
+                                },
+                                "distance": {
+                                    "@value": "0"
+                                },
+                                "hostnames": null,
+                                "ipidsequence": {
+                                    "@class": "All zeros",
+                                    "@values": "0,0,0,0,0,0"
+                                },
+                                "os": {
+                                    "osmatch": [
+                                        {
+                                            "@accuracy": "98",
+                                            "@line": "55688",
+                                            "@name": "Linux 2.6.32",
+                                            "osclass": {
+                                                "@accuracy": "98",
+                                                "@osfamily": "Linux",
+                                                "@osgen": "2.6.X",
+                                                "@type": "general purpose",
+                                                "@vendor": "Linux",
+                                                "cpe": "cpe:/o:linux:linux_kernel:2.6.32"
+                                            }
+                                        },
+                                        {
+                                            "@accuracy": "92",
+                                            "@line": "67677",
+                                            "@name": "Linux 4.8",
+                                            "osclass": {
+                                                "@accuracy": "92",
+                                                "@osfamily": "Linux",
+                                                "@osgen": "4.X",
+                                                "@type": "general purpose",
+                                                "@vendor": "Linux",
+                                                "cpe": "cpe:/o:linux:linux_kernel:4.8"
+                                            }
+                                        },
+                                        {
+                                            "@accuracy": "90",
+                                            "@line": "65640",
+                                            "@name": "Linux 3.7",
+                                            "osclass": {
+                                                "@accuracy": "90",
+                                                "@osfamily": "Linux",
+                                                "@osgen": "3.X",
+                                                "@type": "general purpose",
+                                                "@vendor": "Linux",
+                                                "cpe": "cpe:/o:linux:linux_kernel:3.7"
+                                            }
+                                        }
+                                    ],
+                                    "portused": {
+                                        "@portid": "22",
+                                        "@proto": "tcp",
+                                        "@state": "open"
+                                    }
+                                },
+                                "ports": {
+                                    "extraports": {
+                                        "@count": "98",
+                                        "@state": "filtered",
+                                        "extrareasons": {
+                                            "@count": "98",
+                                            "@reason": "no-responses"
+                                        }
+                                    },
+                                    "port": [
+                                        {
+                                            "@portid": "22",
+                                            "@protocol": "tcp",
+                                            "service": {
+                                                "@conf": "10",
+                                                "@extrainfo": "protocol 2.0",
+                                                "@method": "probed",
+                                                "@name": "ssh",
+                                                "@ostype": "Linux",
+                                                "@product": "OpenSSH",
+                                                "@version": "8.4p1 Debian 5+deb11u1",
+                                                "cpe": [
+                                                    "cpe:/a:openbsd:openssh:8.4p1",
+                                                    "cpe:/o:linux:linux_kernel"
+                                                ]
+                                            },
+                                            "state": {
+                                                "@reason": "syn-ack",
+                                                "@reason_ttl": "64",
+                                                "@state": "open"
+                                            }
+                                        },
+                                        {
+                                            "@portid": "80",
+                                            "@protocol": "tcp",
+                                            "service": {
+                                                "@conf": "10",
+                                                "@method": "probed",
+                                                "@name": "http",
+                                                "@product": "nginx",
+                                                "@version": "1.18.0",
+                                                "cpe": "cpe:/a:igor_sysoev:nginx:1.18.0"
+                                            },
+                                            "state": {
+                                                "@reason": "syn-ack",
+                                                "@reason_ttl": "64",
+                                                "@state": "open"
+                                            }
+                                        }
+                                    ]
+                                },
+                                "status": {
+                                    "@reason": "user-set",
+                                    "@reason_ttl": "0",
+                                    "@state": "up"
+                                },
+                                "tcpsequence": {
+                                    "@difficulty": "Good luck!",
+                                    "@index": "254",
+                                    "@values": "521BB812,AF8F6F2B,76E9C260,D3406752,3B88BBAD,FF88A3BD"
+                                },
+                                "tcptssequence": {
+                                    "@class": "1000HZ",
+                                    "@values": "F6AAFC32,F6AAFC92,F6AAFCF2,F6AAFD52,F6AAFDB2,F6AAFE12"
+                                },
+                                "times": {
+                                    "@rttvar": "128",
+                                    "@srtt": "54",
+                                    "@to": "100000"
+                                },
+                                "uptime": {
+                                    "@lastboot": "Wed Jul 20 12:13:42 2022",
+                                    "@seconds": "4138402"
+                                }
+                            },
+                            "runstats": {
+                                "finished": {
+                                    "@elapsed": "12.85",
+                                    "@exit": "success",
+                                    "@summary": "Nmap done at Tue Sep  6 09:47:04 2022; 1 IP address (1 host up) scanned in 12.85 seconds",
+                                    "@time": "1662457624",
+                                    "@timestr": "Tue Sep  6 09:47:04 2022"
+                                },
+                                "hosts": {
+                                    "@down": "0",
+                                    "@total": "1",
+                                    "@up": "1"
+                                }
+                            },
+                            "scaninfo": {
+                                "@numservices": "100",
+                                "@protocol": "tcp",
+                                "@services": "7,9,13,21-23,25-26,37,53,79-81,88,106,110-111,113,119,135,139,143-144,179,199,389,427,443-445,465,513-515,543-544,548,554,587,631,646,873,990,993,995,1025-1029,1110,1433,1720,1723,1755,1900,2000-2001,2049,2121,2717,3000,3128,3306,3389,3986,4899,5000,5009,5051,5060,5101,5190,5357,5432,5631,5666,5800,5900,6000-6001,6646,7070,8000,8008-8009,8080-8081,8443,8888,9100,9999-10000,32768,49152-49157",
+                                "@type": "syn"
+                            },
+                            "verbose": {
+                                "@level": "0"
+                            }
+                        }
+                    }
+                </code>
+            </pre>
+            <br>
+            <p style="color:orangered">How is it Done</p>
+            <p>The data given by the client is taken as a variable by the API and after receiving the target variable the data is transferred to the appropriate resource is a subprocess execution of nmap with corresponding profile options.</p>
+            <pre>
+                <code style="color:white">
+                    Mapping:
+                    URL = https://api.pcl.net/api/((profile))/((variable from client))
+
+                    class profile(Resource):
+                        def(self, variable):
+                            /*
+                                code
+                            */
+
+                    Process:
+                    variable= ((client variable))
+                    xml_data = subprocess(program + profile + client_variable)
+                    json = json.convert(xmltodict(xml_data))
+                    return json
+                </code>
+            </pre>
+            <p>Based on the developers needs he can use this data to do much more like doing a comprehensive report generation or also a even a better vulnerability assessment system. In this next section we will be implementing this json file into a html file using json2html python module</p>
+        </div>
+        <div id="web-report">
+            <div id="tagline" class="animated zoomIn" style="animation-delay:1s;">
+                <button class="btn_one" href="\scanner" style="color:orangered">Web and Report</button>
+            </div>
+            <div>
+                <p>The developer has 3 options here one is to directly convert the json to html and write it to a file for later use the second is to write it to a html file and present it and the third is to use the json data to create a more detailed listing and do a report based on it.</p>
+                <p>We will be looking into the first two options</p>
+                <br>
+                <p style="color:orangered">Writing to file</p>
+                <p>Probably the easiest way to store the data or to report the data is to store it for later use and the implementation is even quicker.</p>
+                <pre>
+                    <code style="color:white">
+                        SHELL:
+                        $ curl GET https://api.pcl.net/api/p1/test.com >> test.json
+                    </code>
+                </pre>
+                <p>This data can be used as a data file for future reference or simply to just to be exported to another user</p>
+                <br>
+                <p style="color:orangered">Writing and rendering html file</p>
+                <p>This method is useful when implemented with frameworks such as flask or Django as that can be used as a method to render the report file as a separate page making it easy to call a valid report</p>
+                <pre>
+                    <code style="color:white">
+                        PYTHON:
+                        import json
+                        import json2html
+                        import requests
+                        import flask
+
+                        ... all the other code ...
+                        response = requests.get(https://api.pcl.net/api/p1/test.com)
+                        html_data = json2html.convert(json = response.json())
+                        with open('data.html', 'w') as result:
+                            result.write(html_data)
+                        result.close()
+                        # Now view the file in the browser or render it directly
+
+                        return render_template('data.html')
+                    </code>
+                </pre>
+                <br>
+                <p>This can be used as a simple yet effective way to render reports from a json file and can also be used with our API output json making it effective but if you opt for the 3rd option of storing within the program for a more comprehensive analysis then you might have to code a lot which i cannot demonstrate in my simple web-page.</p>
+                <br>
+            </div>
+            <div id="tagline" class="animated zoomIn" style="animation-delay:1s;">
+                <button class="btn_one" href="127.0.0.1:5000\scanner" style="color:orangered">Move to the /scanner section of this Web-Page for the demonstration</button>
+            </div>
+        </div>
+    </div>
+
+
+{% endblock %}

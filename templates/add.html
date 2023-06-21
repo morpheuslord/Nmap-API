@@ -1,0 +1,19 @@
+{% extends 'base.html' %}
+
+{% block content %}
+        <center>
+        <h1>Add User To Database</h1>
+        </center>
+        <center>
+        <form action="/adddata", method="POST">
+        <br>
+        <br>
+        <input type="text\number" value="identy" id="auth" name="identify">
+        <input type="username\String" value="username" id="auth" name="usern">
+        <input type="password" value="password" id="auth" name="passwd">
+        <br>
+        <input type="submit" value="Submit" class="btn_one">
+        </form>
+        </center>
+
+{% endblock %}

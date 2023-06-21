@@ -1,0 +1,192 @@
+{
+    "nmaprun": {
+        "@args": "nmap -Pn -sV -T4 -O -F -oX 127.0.0.1.xml 127.0.0.1",
+        "@scanner": "nmap",
+        "@start": "1664105473",
+        "@startstr": "Sun Sep 25 17:01:13 2022",
+        "@version": "7.92",
+        "@xmloutputversion": "1.05",
+        "debugging": {
+            "@level": "0"
+        },
+        "host": {
+            "@endtime": "1664105481",
+            "@starttime": "1664105473",
+            "address": {
+                "@addr": "127.0.0.1",
+                "@addrtype": "ipv4"
+            },
+            "distance": {
+                "@value": "0"
+            },
+            "hostnames": {
+                "hostname": {
+                    "@name": "kubernetes.docker.internal",
+                    "@type": "PTR"
+                }
+            },
+            "ipidsequence": {
+                "@class": "Incremental",
+                "@values": "C399,C39B,C39F,C3A1,C3A3,C3A5"
+            },
+            "os": {
+                "osmatch": {
+                    "@accuracy": "100",
+                    "@line": "69751",
+                    "@name": "Microsoft Windows 10 1607",
+                    "osclass": {
+                        "@accuracy": "100",
+                        "@osfamily": "Windows",
+                        "@osgen": "10",
+                        "@type": "general purpose",
+                        "@vendor": "Microsoft",
+                        "cpe": "cpe:/o:microsoft:windows_10:1607"
+                    }
+                },
+                "portused": [
+                    {
+                        "@portid": "135",
+                        "@proto": "tcp",
+                        "@state": "open"
+                    },
+                    {
+                        "@portid": "7",
+                        "@proto": "tcp",
+                        "@state": "closed"
+                    },
+                    {
+                        "@portid": "33122",
+                        "@proto": "udp",
+                        "@state": "closed"
+                    }
+                ]
+            },
+            "ports": {
+                "extraports": {
+                    "@count": "96",
+                    "@state": "closed",
+                    "extrareasons": {
+                        "@count": "96",
+                        "@ports": "7,9,13,21-23,25-26,37,53,79-81,88,106,110-111,113,119,139,143-144,179,199,389,427,443-444,465,513-515,543-544,548,554,587,631,646,873,990,993,995,1025-1029,1110,1433,1720,1723,1755,1900,2000-2001,2049,2121,2717,3000,3128,3389,3986,4899,5009,5051,5060,5101,5190,5357,5432,5631,5666,5800,5900,6000-6001,6646,7070,8000,8008-8009,8080-8081,8443,8888,9100,9999-10000,32768,49152-49157",
+                        "@proto": "tcp",
+                        "@reason": "reset"
+                    }
+                },
+                "port": [
+                    {
+                        "@portid": "135",
+                        "@protocol": "tcp",
+                        "service": {
+                            "@conf": "10",
+                            "@method": "probed",
+                            "@name": "msrpc",
+                            "@ostype": "Windows",
+                            "@product": "Microsoft Windows RPC",
+                            "cpe": "cpe:/o:microsoft:windows"
+                        },
+                        "state": {
+                            "@reason": "syn-ack",
+                            "@reason_ttl": "128",
+                            "@state": "open"
+                        }
+                    },
+                    {
+                        "@portid": "445",
+                        "@protocol": "tcp",
+                        "service": {
+                            "@conf": "3",
+                            "@method": "table",
+                            "@name": "microsoft-ds"
+                        },
+                        "state": {
+                            "@reason": "syn-ack",
+                            "@reason_ttl": "128",
+                            "@state": "open"
+                        }
+                    },
+                    {
+                        "@portid": "3306",
+                        "@protocol": "tcp",
+                        "service": {
+                            "@conf": "10",
+                            "@method": "probed",
+                            "@name": "mysql",
+                            "@product": "MySQL",
+                            "@version": "8.0.29",
+                            "cpe": "cpe:/a:mysql:mysql:8.0.29"
+                        },
+                        "state": {
+                            "@reason": "syn-ack",
+                            "@reason_ttl": "128",
+                            "@state": "open"
+                        }
+                    },
+                    {
+                        "@portid": "5000",
+                        "@protocol": "tcp",
+                        "service": {
+                            "@conf": "10",
+                            "@extrainfo": "Python 3.10.7",
+                            "@method": "probed",
+                            "@name": "http",
+                            "@product": "Werkzeug httpd",
+                            "@version": "1.0.1",
+                            "cpe": "cpe:/a:python:python:3.10.7"
+                        },
+                        "state": {
+                            "@reason": "syn-ack",
+                            "@reason_ttl": "128",
+                            "@state": "open"
+                        }
+                    }
+                ]
+            },
+            "status": {
+                "@reason": "user-set",
+                "@reason_ttl": "0",
+                "@state": "up"
+            },
+            "tcpsequence": {
+                "@difficulty": "Good luck!",
+                "@index": "256",
+                "@values": "83C37E1A,C80A41B2,795EF72A,E430DC8E,C69E98B5,F87BFB87"
+            },
+            "tcptssequence": {
+                "@class": "1000HZ",
+                "@values": "6A36A4,6A3711,6A377E,6A37ED,6A385D,6A38CC"
+            },
+            "times": {
+                "@rttvar": "33606",
+                "@srtt": "36979",
+                "@to": "171403"
+            },
+            "uptime": {
+                "@lastboot": "Sun Sep 25 15:05:20 2022",
+                "@seconds": "6961"
+            }
+        },
+        "runstats": {
+            "finished": {
+                "@elapsed": "8.75",
+                "@exit": "success",
+                "@summary": "Nmap done at Sun Sep 25 17:01:21 2022; 1 IP address (1 host up) scanned in 8.75 seconds",
+                "@time": "1664105481",
+                "@timestr": "Sun Sep 25 17:01:21 2022"
+            },
+            "hosts": {
+                "@down": "0",
+                "@total": "1",
+                "@up": "1"
+            }
+        },
+        "scaninfo": {
+            "@numservices": "100",
+            "@protocol": "tcp",
+            "@services": "7,9,13,21-23,25-26,37,53,79-81,88,106,110-111,113,119,135,139,143-144,179,199,389,427,443-445,465,513-515,543-544,548,554,587,631,646,873,990,993,995,1025-1029,1110,1433,1720,1723,1755,1900,2000-2001,2049,2121,2717,3000,3128,3306,3389,3986,4899,5000,5009,5051,5060,5101,5190,5357,5432,5631,5666,5800,5900,6000-6001,6646,7070,8000,8008-8009,8080-8081,8443,8888,9100,9999-10000,32768,49152-49157",
+            "@type": "syn"
+        },
+        "verbose": {
+            "@level": "0"
+        }
+    }
+}
