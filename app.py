@@ -1,298 +1,261 @@
-from flask import Flask, request
-import subprocess
-import json
-import xmltodict
-import lxml
+import nmap
 import sqlite3
-from lxml import etree
-from flask_restful import Api, Resource
 import re
+import openai
+import os
+import hashlib
+import json
+from flask import Flask, render_template
+from flask_restful import Api, Resource
+
+openai.api_key = "__API__KEY__"
+model_engine = "text-davinci-003"
 
 app = Flask(__name__)
 api = Api(app)
 
+nm = nmap.PortScanner()
 
-# User Database Implimentation
-def db_connection():
-    conn = None
+
+# Index and Docx page
+@app.route('/', methods=['GET'])
+def home() -> any:
+    return render_template("index.html")
+
+
+@app.route('/doc', methods=['GET'])
+def doc() -> any:
+    return render_template("doc.html")
+
+
+@app.route('/register/<int:user_id>/<string:password>')
+def store_auth_key(user_id: int, password: str) -> str:
+    sanitized_username = user_id
+    sanitized_passwd = password
+    # Hash the user's ID and password together
+    hash = hashlib.sha256()
+    hash.update(str(sanitized_username).encode('utf-8'))
+    hash.update(sanitized_passwd.encode('utf-8'))
+    # Use the hash to generate the auth key
+    auth_key = hash.hexdigest()[:20]  # Get the first 10 characters
+    db_file = 'auth_keys.db'
+    need_create_table = not os.path.exists(db_file)
+    conn = sqlite3.connect(db_file)
+    cursor = conn.cursor()
+    if need_create_table:
+        cursor.execute('''CREATE TABLE auth_keys
+                        (user_id INT PRIMARY KEY NOT NULL,
+                        auth_key TEXT NOT NULL);''')
+    cursor.execute(
+        "INSERT INTO auth_keys (user_id, auth_key) VALUES (?, ?)",
+        (sanitized_passwd, auth_key)
+    )
+
+    conn.commit()
+    conn.close()
+
+    return auth_key
+
+
+def sanitize(input_string: str) -> str:
+    if not re.match("^[a-zA-Z0-9]*$", input_string):
+        raise ValueError("Invalid characters in string")
+    else:
+        return input_string
+
+
+def chunk_output(
+        scan_output: str, max_token_size: int
+) -> list[dict[str, any]]:
+    scan_output_dict = json.loads(scan_output)
+    output_chunks = []
+    current_chunk = {}
+    current_token_count = 0
+
+    # Convert JSON to AI usable chunks
+    for ip, scan_data in scan_output_dict.items():
+        new_data_token_count = len(json.dumps({ip: scan_data}).split())
+
+        if current_token_count + new_data_token_count <= max_token_size:
+            current_chunk[ip] = scan_data
+            current_token_count += new_data_token_count
+        else:
+            output_chunks.append(current_chunk)
+            current_chunk = {ip: scan_data}
+            current_token_count = new_data_token_count
+    # The Chunks list that is returned
+    if current_chunk:
+        output_chunks.append(current_chunk)
+
+    return output_chunks
+
+
+def AI(analize: str) -> dict[str, any]:
+    # Prompt about what the query is all about
+    prompt = f"""
+        Do a vulnerability analysis report on the following JSON data and
+        follow the following rules:
+        1) Calculate the criticality score.
+        2) Return all the open ports within the open_ports list.
+        3) Return all the closed ports within the closed_ports list.
+        4) Return all the filtered ports within the filtered_ports list.
+
+        output format: {{
+            "open_ports": [],
+            "closed_ports": [],
+            "filtered_ports": [],
+            "criticality_score": ""
+            }}
+
+        data = {analize}
+    """
     try:
-        conn = sqlite3.connect("db.sqlite")
-    except sqlite3.error as e:
-        print(e)
-    return conn
+        # A structure for the request
+        completion = openai.Completion.create(
+            engine=model_engine,
+            prompt=prompt,
+            max_tokens=1024,
+            n=1,
+            stop=None,
+        )
+        response = completion.choices[0].text
 
-def s_user(username):
-  # Remove any characters that are not letters, numbers, or underscores
-  sanitized_username = re.sub(r'[^\w]', '', username)
-  # Remove any leading or trailing spaces
-  sanitized_username = sanitized_username.strip()
-  return sanitized_username
+        # Assuming extract_ai_output returns a dictionary
+        extracted_data = extract_ai_output(response)
+    except KeyboardInterrupt:
+        print("Bye")
+        quit()
 
-def s_p(password):
-  # Remove any leading or trailing spaces
-  sanitized_password = password.strip()
-  return sanitized_password
+    # Store outputs in a dictionary
+    ai_output = {
+        "open_ports": extracted_data.get("open_ports"),
+        "closed_ports": extracted_data.get("closed_ports"),
+        "filtered_ports": extracted_data.get("filtered_ports"),
+        "criticality_score": extracted_data.get("criticality_score")
+    }
 
-# Add Userdata
-@app.route('/adduser/<auser>:<apass>/<uid>/<username>/<passwd>', methods=['POST'])
-def add_user(uid, username, passwd,auser, apass):
-    conn = db_connection()
+    return ai_output
+
+
+def authenticate(auth_key: str) -> bool:
+    conn = sqlite3.connect('auth_keys.db')
     cursor = conn.cursor()
-    auser1 = s_user(auser)
-    apass1 = s_p(apass)
-    new_id = uid
-    new_user = s_user(username)
-    new_passwd = s_p(passwd)
-    sql1 = """ SELECT username, passwd FROM users WHERE username = ? AND passwd = ?"""
-    usernamecheck = cursor.execute(sql1, (auser1,apass1))
-    if not usernamecheck.fetchone():
-            return [{"error":"admin passwd or admin username error"}]
+    key = sanitize(auth_key)
+    # Check if the given auth_key exists in the database
+    cursor.execute("SELECT 1 FROM auth_keys WHERE auth_key = ?", (key,))
+    row = cursor.fetchone()
+    conn.close()
+    # If the auth_key is found, return True, else False
+    if row:
+        return True
     else:
-        sql = """INSERT INTO users (id, username, passwd) VALUES (?, ?, ?)"""
-        cursor = cursor.execute(sql, (new_id, new_user, new_passwd))
-        conn.commit()
-    return f'["added": {[{"ID":new_id}], [{"Username":new_user}], [{"Password": new_passwd}]} ]'
+        return False
 
-@app.route('/altusername/<auser>:<apass>/<uid>/<username>', methods=['POST'])
-def alt_user(uid, username, auser, apass):
-    conn = db_connection()
-    cursor = conn.cursor()
-    new_id = uid
-    new_user = s_user(username)
-    auser1=s_user(auser)
-    apass1=s_p(apass)
-    sql1 = """ SELECT username, passwd FROM users WHERE username = ? AND passwd = ?"""
-    usernamecheck = cursor.execute(sql1, (auser1,apass1))
-    if not usernamecheck.fetchone():
-            return [{"error":"admin passwd or admin username error"}]
+
+def extract_ai_output(ai_output: str) -> dict[str, any]:
+    result = {
+        "open_ports": [],
+        "closed_ports": [],
+        "filtered_ports": [],
+        "criticality_score": ""
+    }
+
+    # Match and extract ports
+    open_ports_match = re.search(r'"open_ports": \[([^\]]*)\]', ai_output)
+    closed_ports_match = re.search(r'"closed_ports": \[([^\]]*)\]', ai_output)
+    filtered_ports_match = re.search(
+        r'"filtered_ports": \[([^\]]*)\]', ai_output)
+
+    # If found, convert string of ports to list
+    if open_ports_match:
+        result["open_ports"] = list(
+            map(int, open_ports_match.group(1).split(',')))
+    if closed_ports_match:
+        result["closed_ports"] = list(
+            map(int, closed_ports_match.group(1).split(',')))
+    if filtered_ports_match:
+        result["filtered_ports"] = list(
+            map(int, filtered_ports_match.group(1).split(',')))
+
+    # Match and extract criticality score
+    criticality_score_match = re.search(
+        r'"criticality_score": "([^"]*)"', ai_output)
+    if criticality_score_match:
+        result["criticality_score"] = criticality_score_match.group(1)
+
+    return result
+
+
+def profile(auth: str, url: str, argument: str) -> dict[str, any]:
+    ip = url
+    # Nmap Execution command
+    usernamecheck = authenticate(auth)
+    if usernamecheck is False:
+        return [{"error": "passwd or username error"}]
     else:
-        sql = """UPDATE users SET (username=?) WHERE id=?"""
-        cursor = cursor.execute(sql, (new_user, new_id))
-        conn.commit()
-        return f'Updated {[{new_id : new_user}]} '
+        nm.scan('{}'.format(ip), arguments='{}'.format(argument))
+        scan_data = nm.analyse_nmap_xml_scan()
+        analize = scan_data["scan"]
+        # chunk_data = str(chunk_output(analize, 500))
+        # all_outputs = []
+        # for chunks in chunk_data:
+        #     string_chunks = str(chunks)
+        #     data = AI(string_chunks)
+        #     all_outputs.append(data)
+        # return json.dumps(all_outputs)
+        return analize
 
-@app.route('/altpasswd/<auser>:<apass>/<username>/<passwd>', methods=['POST'])
-def alt_passwd(username, passwd, auser, apass):
-    conn = db_connection()
-    cursor = conn.cursor()
-    new_user = s_user(username)
-    new_passwd = s_p(passwd)
-    auser1=s_user(auser)
-    apass1=s_p(apass)
-    sql1 = """ SELECT username, passwd FROM users WHERE username = ? AND passwd = ?"""
-    usernamecheck = cursor.execute(sql1, (auser1,apass1))
-    if not usernamecheck.fetchone():
-            return [{"error":"admin passwd or admin username error"}]
-    else:
-        sql = """UPDATE users SET passwd=? WHERE username=?"""
-        cursor = cursor.execute(sql, ( new_passwd, new_user))
-        conn.commit()
-        return f'Updated {[{new_user : new_passwd}]} '
-
-@app.route('/altid/<auser>:<apass>/<uid>/<usern>', methods=['POST'])
-def alt_id(uid, usern, auser, apass):
-    conn = db_connection()
-    cursor = conn.cursor()
-    new_id = uid
-    username = s_user(usern)
-    auser1=s_user(auser)
-    apass1=s_p(apass)
-    sql1 = """ SELECT username, passwd FROM users WHERE username = ? AND passwd = ?"""
-    usernamecheck = cursor.execute(sql1, (auser1,apass1))
-    if not usernamecheck.fetchone():
-            return [{"error":"admin passwd or admin username error"}]
-    else:
-        sql = """UPDATE users SET id=? WHERE username=?"""
-        cursor = cursor.execute(sql, ( new_id, username))
-        conn.commit()
-        return f'Updated {[{new_id : username}]} '
-
-
-@app.route('/deluser/<auser>:<apass>/<uname>/<upass>', methods=['POST'])
-def deluser(uname, upass, auser, apass):
-    conn = db_connection()
-    cursor = conn.cursor()
-    username = s_user(uname)
-    passwd = s_p(upass)
-    auser1=s_user(auser)
-    apass1=s_p(apass)
-    sql1 = """ SELECT username, passwd FROM users WHERE username = ? AND passwd = ?"""
-    usernamecheck = cursor.execute(sql1, (auser1,apass1))
-    if not usernamecheck.fetchone():
-            return [{"error":"admin passwd or admin username error"}]
-    else:
-        sql = """DELETE from users where username=? AND passwd=?"""
-        cursor = cursor.execute(sql, (username, passwd))
-        conn.commit()
-        return f'Removed {[{"Username":username}]} '
-
-# class altpasswd2(Resource):
-#     def POST(self, username, password):
-#         conn = db_connection()
-#         cursor = conn.cursor()
-#         new_user = request.form[username]
-#         new_passwd = request.form[password]
-#         sql = """UPDATE users SET passwd=? WHERE username=?"""
-#         cursor = cursor.execute(sql, ( new_passwd, new_user))
-#         conn.commit()
-#         return f'added {cursor.lastrowid} '
-
-# def user_auth(username, password):
-#     conn = db_connection()
-#     cursor = conn.cursor()
-#     sql = """ SELECT COUNT(*) FROM users WHERE username = ? AND passwd = ?"""
-#     usernamecheck = cursor.execute(sql, (username,password))
-#     # usernamecheck = cursor.execute("SELECT COUNT(*) FROM users WHERE username = :username AND password = :password", username=username, password=password)
-#     print(usernamecheck)
-#     if usernamecheck is None:
-#         return 400
-#     else:
-#         return 200
 
 # Effective  Scan
 class p1(Resource):
-    def get(self, username, password, url):
-        ip = url
-        # Nmap Execution command
-        conn = db_connection()
-        cursor = conn.cursor()
-        un = s_user(username)
-        pa = s_p(password)
-        sql = """ SELECT username, passwd FROM users WHERE username = ? AND passwd = ?"""
-        usernamecheck = cursor.execute(sql, (un,pa))
-        if not usernamecheck.fetchone():
-            return [{"error":"passwd or username error"}]
-        else:
-            command = 'nmap {} -Pn -sV -T4 -O -F -oX {}.xml'.format(ip, ip)
-            subprocess.run(command, shell=True)
-            # Xml Write
-            scan_file = open("{}.xml".format(ip))
-            scan_xml = scan_file.read()
-            scan_file.close()
-            xslt_doc = etree.parse("nmap.xsl")
-            xslt_transformer = etree.XSLT(xslt_doc)
-            source_doc = etree.parse("{}.xml".format(ip))
-            output_doc = xslt_transformer(source_doc)
-            output_doc.write("{}.html".format(ip), pretty_print=True)
-            json_data = json.dumps(xmltodict.parse(scan_xml), indent=4, sort_keys=True)
-            return json_data
+    def get(self, auth, url):
+        argument = '-Pn -sV -T4 -O -F'
+        scan = profile(auth, url, argument)
+        return scan
+
 
 # Simple Scan
 class p2(Resource):
-    def get(self, username, password, url):
-        ip = url
-        # Nmap Execution command
-        conn = db_connection()
-        cursor = conn.cursor()
-        un = s_user(username)
-        pa = s_p(password)
-        sql = """ SELECT username, passwd FROM users WHERE username = ? AND passwd = ?"""
-        usernamecheck = cursor.execute(sql, (un,pa))
-        if not usernamecheck.fetchone():
-            return [{"error":"passwd or username error"}]
-        else:
-            command = 'nmap {} -Pn -T4 -A -v -oX {}.xml'.format(ip, ip)
-            subprocess.run(command, shell=True)
-            scan_file = open("{}.xml".format(ip))
-            scan_xml = scan_file.read()
-            scan_file.close()
-            xslt_doc = etree.parse("nmap.xsl")
-            xslt_transformer = etree.XSLT(xslt_doc)
-            source_doc = etree.parse("{}.xml".format(ip))
-            output_doc = xslt_transformer(source_doc)
-            output_doc.write("{}.html".format(ip), pretty_print=True)
-            json_data = json.dumps(xmltodict.parse(scan_xml), indent=4, sort_keys=True)
-            return json_data
+    def get(self, auth, url):
+        argument = '-Pn -T4 -A -v'
+        scan = profile(auth, url, argument)
+        return scan
 
 
 # Low Power Scan
 class p3(Resource):
-    def get(self, username, password, url):
-        ip = url
-        # Nmap Execution command
-        conn = db_connection()
-        cursor = conn.cursor()
-        un = s_user(username)
-        pa = s_p(password)
-        sql = """ SELECT username, passwd FROM users WHERE username = ? AND passwd = ?"""
-        usernamecheck = cursor.execute(sql, (un,pa))
-        if not usernamecheck.fetchone():
-            return [{"error":"passwd or username error"}]
-        else:
-            command = 'nmap {} -Pn -sS -sU -T4 -A -v -oX {}.xml'.format(ip, ip)
-            subprocess.run(command, shell=True)
-            scan_file = open("{}.xml".format(ip))
-            scan_xml = scan_file.read()
-            scan_file.close()
-            xslt_doc = etree.parse("nmap.xsl")
-            xslt_transformer = etree.XSLT(xslt_doc)
-            source_doc = etree.parse("{}.xml".format(ip))
-            output_doc = xslt_transformer(source_doc)
-            output_doc.write("{}.html".format(ip), pretty_print=True)
-            json_data = json.dumps(xmltodict.parse(scan_xml), indent=4, sort_keys=True)
-            return json_data
+    def get(self, auth, url):
+        argument = '-Pn -sS -sU -T4 -A -v'
+        scan = profile(auth, url, argument)
+        return scan
 
-#partial Intense Scan
+
+# partial Intense Scan
 class p4(Resource):
-    def get(self, username, password, url):
-        ip = url
-        # Nmap Execution command
-        conn = db_connection()
-        cursor = conn.cursor()
-        un = s_user(username)
-        pa = s_p(password)
-        sql = """ SELECT username, passwd FROM users WHERE username = ? AND passwd = ?"""
-        usernamecheck = cursor.execute(sql, (un,pa))
-        if not usernamecheck.fetchone():
-            return [{"error":"passwd or username error"}]
-        else:
-            command = 'nmap {} -Pn -p- -T4 -A -v -oX {}.xml'.format(ip, ip)
-            subprocess.run(command, shell=True)
-            scan_file = open("{}.xml".format(ip))
-            scan_xml = scan_file.read()
-            scan_file.close()
-            xslt_doc = etree.parse("nmap.xsl")
-            xslt_transformer = etree.XSLT(xslt_doc)
-            source_doc = etree.parse("{}.xml".format(ip))
-            output_doc = xslt_transformer(source_doc)
-            output_doc.write("{}.html".format(ip), pretty_print=True)
-            json_data = json.dumps(xmltodict.parse(scan_xml), indent=4, sort_keys=True)
-            return json_data
+    def get(self, auth, url):
+        argument = '-Pn -p- -T4 -A -v'
+        scan = profile(auth, url, argument)
+        return scan
+
 
 # Complete Intense scan
 class p5(Resource):
-    def get(self, username, password, url):
-        ip = url
-        # Nmap Execution command
-        conn = db_connection()
-        cursor = conn.cursor()
-        un = s_user(username)
-        pa = s_p(password)
-        sql = """ SELECT username, passwd FROM users WHERE username = ? AND passwd = ?"""
-        usernamecheck = cursor.execute(sql, (un,pa))
-        if not usernamecheck.fetchone():
-            return [{"error":"passwd or username error"}]
-        else:
-            command = 'nmap {} -Pn -sS -sU -T4 -A -PE -PP -PS80,443 -PA3389 -PU40125 -PY -g 53 --script=vuln -oX {}.xml'.format(ip, ip)
-            subprocess.run(command, shell=True)
-            scan_file = open("{}.xml".format(ip))
-            scan_xml = scan_file.read()
-            scan_file.close()
-            xslt_doc = etree.parse("nmap.xsl")
-            xslt_transformer = etree.XSLT(xslt_doc)
-            source_doc = etree.parse("{}.xml".format(ip))
-            output_doc = xslt_transformer(source_doc)
-            output_doc.write("{}.html".format(ip), pretty_print=True)
-            json_data = json.dumps(xmltodict.parse(scan_xml), indent=4, sort_keys=True)
-            return json_data
+    def get(self, auth, url):
+        argument = '-Pn -sS -sU -T4 -A -PE -PP -PY -g 53 --script=vuln'
+        scan = profile(auth, url, argument)
+        return scan
 
 
-api.add_resource(p1, "/api/p1/<string:username>:<string:password>/<string:url>")
-api.add_resource(p2, "/api/p2/<string:username>:<string:password>/<string:url>")
-api.add_resource(p3, "/api/p3/<string:username>:<string:password>/<string:url>")
-api.add_resource(p4, "/api/p4/<string:username>:<string:password>/<string:url>")
-api.add_resource(p5, "/api/p5/<string:username>:<string:password>/<string:url>")
-# api.add_resource(altpasswd2, "/altpasswd2/<string:username>/<string:password>")
+api.add_resource(
+    p1, "/api/p1/<string:auth>/<string:url>")
+api.add_resource(
+    p2, "/api/p2/<string:auth>/<string:url>")
+api.add_resource(
+    p3, "/api/p3/<string:auth>/<string:url>")
+api.add_resource(
+    p4, "/api/p4/<string:auth>/<string:url>")
+api.add_resource(
+    p5, "/api/p5/<string:auth>/<string:url>")
 
 if __name__ == '__main__':
-    app.run(host="127.0.0.1", port="5010")
+    app.run(host="0.0.0.0", port="80")
