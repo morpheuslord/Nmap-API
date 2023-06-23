@@ -216,15 +216,15 @@ def profile(auth: str, url: str, argument: str) -> dict[str, Any]:
     else:
         nm.scan('{}'.format(ip), arguments='{}'.format(argument))
         scan_data = nm.analyse_nmap_xml_scan()
-        analize = scan_data["scan"]
-        # chunk_data = str(chunk_output(analize, 500))
+        analyze = scan_data["scan"]
+        # chunk_data = str(chunk_output(analyze, 500))
         # all_outputs = []
         # for chunks in chunk_data:
         #     string_chunks = str(chunks)
         #     data = AI(string_chunks)
         #     all_outputs.append(data)
         # return json.dumps(all_outputs)
-        return analize
+        return analyze
 
 
 # Effective  Scan
