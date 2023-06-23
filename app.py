@@ -217,14 +217,13 @@ def profile(auth: str, url: str, argument: str) -> dict[str, Any]:
         nm.scan('{}'.format(ip), arguments='{}'.format(argument))
         scan_data = nm.analyse_nmap_xml_scan()
         analyze = scan_data["scan"]
-        # chunk_data = str(chunk_output(analyze, 500))
-        # all_outputs = []
-        # for chunks in chunk_data:
-        #     string_chunks = str(chunks)
-        #     data = AI(string_chunks)
-        #     all_outputs.append(data)
-        # return json.dumps(all_outputs)
-        return analyze
+        chunk_data = str(chunk_output(analyze, 500))
+        all_outputs = []
+        for chunks in chunk_data:
+            string_chunks = str(chunks)
+            data = AI(string_chunks)
+            all_outputs.append(data)
+        return json.dumps(all_outputs)
 
 
 # Effective  Scan
@@ -277,6 +276,7 @@ api.add_resource(
     p4, "/api/p4/<string:auth>/<string:url>")
 api.add_resource(
     p5, "/api/p5/<string:auth>/<string:url>")
+
 
 if __name__ == '__main__':
     app.run(host="0.0.0.0", port="80")
