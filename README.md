@@ -45,12 +45,13 @@ This is a implementation for our college PCL project which is still under develo
 #### Auth and User management
 
 ```text
-  GET /register/<int:user_id>/<string:password>
+  GET /register/<int:user_id>/<string:password>/<string:unique_key>
 ```
 | Parameter | Type     | Description                |
 | :-------- | :------- | :------------------------- |
 |`ID`|`Int`|user ID|
 |`Passwd`| `String`| User Passwd|
+|`Unique_Key`| `String`| User Unique_Key|
 
 ## Improvements
 Added GPT functionality with chunking module.
