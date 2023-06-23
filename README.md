@@ -113,6 +113,24 @@ def AI(analyze: str) -> dict[str, any]:
 
     return ai_output
 ```
+API Key must be mentioned
+```python
+openai.api_key = '__API__KEY__'
+```
+
+### Package
+The package is a simple extension for future usage or upgrades it can be installed by running:
+```bash
+cd package && pip install .
+```
+The Usage can be implemented like this:
+```python
+from nmap_api import app
+
+app.openai.api_key = '__API__KEY__'
+app.start_api()
+
+```
 
 #### Default User Keys
 **Default_Key**: **cff649285012c6caae4d**
