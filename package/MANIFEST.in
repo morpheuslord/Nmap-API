@@ -1,0 +1,2 @@
+include nmap_api/*.py
+include nmap_api/*.txt
