@@ -114,4 +114,5 @@ def AI(analize: str) -> dict[str, any]:
     return ai_output
 ```
 
-**Default_Key**: **e43d4c3b79**
+#### Default User Keys
+**Default_Key**: **cff649285012c6caae4d**
