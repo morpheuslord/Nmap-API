@@ -58,16 +58,16 @@ Added GPT functionality with chunking module.
 The methodology is based on how `Langchain GPT embeddings` operate. Basically the operation goes like this:
 
 ```text
-Data -> Chunks_generator ─┐            ┌─> AI_Loop -> Data_Extraction -> Return_Data
-                          ├─> Chunk1  ─┤
-                          ├─> Chunk2  ─┤
+Data -> Chunks_generator ─┐            ┌─> AI_Loop -> Data_Extraction -> Return_Dat
+    (GPT3 - 1500 TOKENS)  ├─> Chunk1  ─┤
+    (GPT4 - 3500 TOKENS)  ├─> Chunk2  ─┤
                           ├─> Chunk3  ─┤
                           └─> Chunk N ─┘
 ```
 
 AI code:
 ```python
-def AI(analize: str) -> dict[str, any]:
+def AI(analyze: str) -> dict[str, any]:
     # Prompt about what the query is all about
     prompt = f"""
         Do a vulnerability analysis report on the following JSON data and
