@@ -1,12 +1,18 @@
-import nmap
-import sqlite3
-import re
-import openai
-import os
 import hashlib
 import json
-from flask import Flask, render_template
-from flask_restful import Api, Resource
+import os
+import re
+import sqlite3
+from typing import Any
+from typing import Callable
+from typing import cast
+
+import nmap
+import openai
+from flask import Flask
+from flask import render_template
+from flask_restful import Api
+from flask_restful import Resource
 
 openai.api_key = "__API__KEY__"
 model_engine = "text-davinci-003"
@@ -19,25 +25,27 @@ nm = nmap.PortScanner()
 
 # Index and Docx page
 @app.route('/', methods=['GET'])
-def home() -> any:
+def home() -> Any:
     return render_template("index.html")
 
 
 @app.route('/doc', methods=['GET'])
-def doc() -> any:
+def doc() -> Any:
     return render_template("doc.html")
 
 
-@app.route('/register/<int:user_id>/<string:password>')
-def store_auth_key(user_id: int, password: str) -> str:
+@app.route('/register/<int:user_id>/<string:password>/<string:unique_key>')
+def store_auth_key(user_id: int, password: str, unique_key: str) -> str:
     sanitized_username = user_id
     sanitized_passwd = password
-    # Hash the user's ID and password together
+    sanitized_key = unique_key
+    # Hash the user's ID, password, and unique key together
     hash = hashlib.sha256()
     hash.update(str(sanitized_username).encode('utf-8'))
     hash.update(sanitized_passwd.encode('utf-8'))
+    hash.update(sanitized_key.encode('utf-8'))
     # Use the hash to generate the auth key
-    auth_key = hash.hexdigest()[:20]  # Get the first 10 characters
+    auth_key = hash.hexdigest()[:20]  # Get the first 20 characters
     db_file = 'auth_keys.db'
     need_create_table = not os.path.exists(db_file)
     conn = sqlite3.connect(db_file)
@@ -45,16 +53,26 @@ def store_auth_key(user_id: int, password: str) -> str:
     if need_create_table:
         cursor.execute('''CREATE TABLE auth_keys
                         (user_id INT PRIMARY KEY NOT NULL,
-                        auth_key TEXT NOT NULL);''')
+                        auth_key TEXT NOT NULL,
+                        unique_key TEXT NOT NULL);''')
+    query = (
+        "INSERT INTO auth_keys "
+        "(user_id, auth_key, unique_key) "
+        "VALUES (?, ?, ?)"
+    )
     cursor.execute(
-        "INSERT INTO auth_keys (user_id, auth_key) VALUES (?, ?)",
-        (sanitized_passwd, auth_key)
+        query,
+        (sanitized_username, auth_key, sanitized_key)
     )
 
     conn.commit()
     conn.close()
 
     return auth_key
+
+
+def to_int(s: str) -> int:
+    return int(s)
 
 
 def sanitize(input_string: str) -> str:
@@ -66,7 +84,7 @@ def sanitize(input_string: str) -> str:
 
 def chunk_output(
         scan_output: str, max_token_size: int
-) -> list[dict[str, any]]:
+) -> list[dict[str, Any]]:
     scan_output_dict = json.loads(scan_output)
     output_chunks = []
     current_chunk = {}
@@ -90,7 +108,7 @@ def chunk_output(
     return output_chunks
 
 
-def AI(analize: str) -> dict[str, any]:
+def AI(analize: str) -> dict[str, Any]:
     # Prompt about what the query is all about
     prompt = f"""
         Do a vulnerability analysis report on the following JSON data and
@@ -118,7 +136,7 @@ def AI(analize: str) -> dict[str, any]:
             n=1,
             stop=None,
         )
-        response = completion.choices[0].text
+        response = completion.choices[0]['text']
 
         # Assuming extract_ai_output returns a dictionary
         extracted_data = extract_ai_output(response)
@@ -152,7 +170,7 @@ def authenticate(auth_key: str) -> bool:
         return False
 
 
-def extract_ai_output(ai_output: str) -> dict[str, any]:
+def extract_ai_output(ai_output: str) -> dict[str, Any]:
     result = {
         "open_ports": [],
         "closed_ports": [],
@@ -169,13 +187,16 @@ def extract_ai_output(ai_output: str) -> dict[str, any]:
     # If found, convert string of ports to list
     if open_ports_match:
         result["open_ports"] = list(
-            map(int, open_ports_match.group(1).split(',')))
+            map(cast(Callable[[Any], str], int),
+                open_ports_match.group(1).split(',')))
     if closed_ports_match:
         result["closed_ports"] = list(
-            map(int, closed_ports_match.group(1).split(',')))
+            map(cast(Callable[[Any], str], int),
+                closed_ports_match.group(1).split(',')))
     if filtered_ports_match:
         result["filtered_ports"] = list(
-            map(int, filtered_ports_match.group(1).split(',')))
+            map(cast(Callable[[Any], str], int),
+                filtered_ports_match.group(1).split(',')))
 
     # Match and extract criticality score
     criticality_score_match = re.search(
@@ -186,12 +207,12 @@ def extract_ai_output(ai_output: str) -> dict[str, any]:
     return result
 
 
-def profile(auth: str, url: str, argument: str) -> dict[str, any]:
+def profile(auth: str, url: str, argument: str) -> dict[str, Any]:
     ip = url
     # Nmap Execution command
     usernamecheck = authenticate(auth)
     if usernamecheck is False:
-        return [{"error": "passwd or username error"}]
+        return {"error": "passwd or username error"}
     else:
         nm.scan('{}'.format(ip), arguments='{}'.format(argument))
         scan_data = nm.analyse_nmap_xml_scan()
