@@ -55,7 +55,7 @@ This is a implementation for our college PCL project which is still under develo
 
 ## Improvements
 Added GPT functionality with chunking module.
-The methodology is based on how `Langchain GPT embeddings` operate. Basically the operation goes like this:
+The methodology is based on how `Langchain GPT embeddings` operate. Basically, the operation goes like this:
 
 ```text
 Data -> Chunks_generator ─┐            ┌─> AI_Loop -> Data_Extraction -> Return_Dat
@@ -64,6 +64,24 @@ Data -> Chunks_generator ─┐            ┌─> AI_Loop -> Data_Extraction ->
                           ├─> Chunk3  ─┤
                           └─> Chunk N ─┘
 ```
+this is how to works:
+- **Step 1:**
+  - The JSON is done scanning or the text is extracted and converted into a string
+- **Step 2:**
+  - The long string is converted into individual tokens of words and characters for example `[]{};word` == `'[',']','{','}',';','word'`
+- **Step 3:**
+  - The long list of tokens is divided into groups of lists according to how many `tokens` we want.
+  - for our use case we have a prompt and the data extracted and for simplicity, we went with the chunks of `500 tokens` + the prompt tokens.
+- **Step 4:**
+  - Step 4 can be achieved in 3 ways `a) Langchain`, `b) OpenAI functions Feature`, `c) The OpenAI API calls`
+  - From our tests, the first option `Langchain LLM` did not work as it is not built for such processes
+  - The second option `OpenAI functions feature` needed support and more context.
+  - The Third was the best as we can provide the rules and output format for it to give an output.
+- **Step 5:**
+  - The final step is to run the loop and `regex` the output data and return them as an output.
+  - The reason for using regex is that `AI is unpredictable` so we need to take measures to keep our data usable.
+  - The prompt is used as an output format making sure the AI gives that output no matter what so we can easily regex that output.
+ 
 
 AI code:
 ```python
