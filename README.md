@@ -132,7 +132,7 @@ def AI(analyze: str) -> dict[str, any]:
     return ai_output
 ```
 
-The Regex and extraction:
+The Prompt, Regex and extraction:
 ```python
     prompt = f"""
         Do a vulnerability analysis report on the following JSON data provided.
