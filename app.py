@@ -14,7 +14,7 @@ from flask import render_template
 from flask_restful import Api
 from flask_restful import Resource
 
-openai.api_key = "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"
+openai.api_key = "__API__KEY__"
 model_engine = "text-davinci-003"
 
 app = Flask(__name__)
