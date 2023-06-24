@@ -14,7 +14,7 @@ from flask import render_template
 from flask_restful import Api
 from flask_restful import Resource
 
-openai.api_key = "__API__KEY__"
+openai.api_key = "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"
 model_engine = "text-davinci-003"
 
 app = Flask(__name__)
@@ -82,16 +82,14 @@ def sanitize(input_string: str) -> str:
         return input_string
 
 
-def chunk_output(
-        scan_output: str, max_token_size: int
-) -> list[dict[str, Any]]:
-    scan_output_dict = json.loads(scan_output)
+def chunk_output(scan_output: dict,
+                 max_token_size: int) -> list[dict[str, Any]]:
     output_chunks = []
     current_chunk = {}
     current_token_count = 0
 
     # Convert JSON to AI usable chunks
-    for ip, scan_data in scan_output_dict.items():
+    for ip, scan_data in scan_output.items():
         new_data_token_count = len(json.dumps({ip: scan_data}).split())
 
         if current_token_count + new_data_token_count <= max_token_size:
