@@ -2,8 +2,8 @@
 # Nmap API
 
 Uses python3.10, Debian, python-Nmap, and flask framework to create a Nmap API that can do scans with a good speed online and is easy to deploy.
-
-This is a implementation for our college PCL project which is still under development and constantly updating.
+The API also includes GPT3 functionality for AI generated reports.
+This is an implementation for our college PCL project which is still under development and constantly updating.
 
 
 ## API Reference
