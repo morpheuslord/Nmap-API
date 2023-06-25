@@ -9,12 +9,15 @@ from typing import cast
 
 import nmap
 import openai
+
+from dotenv import load_dotenv
 from flask import Flask
 from flask import render_template
 from flask_restful import Api
 from flask_restful import Resource
 
-openai.api_key = "__API__KEY__"
+load_dotenv()
+openai.api_key = os.getenv('API_KEY')
 model_engine = "text-davinci-003"
 
 app = Flask(__name__)
