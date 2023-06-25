@@ -60,7 +60,7 @@ The methodology is based on how `Langchain GPT embeddings` operate. Basically, t
 ```text
 Data -> Chunks_generator ─┐            ┌─> AI_Loop -> Data_Extraction -> Return_Dat
     (GPT3 - 1500 TOKENS)  ├─> Chunk1  ─┤
-    (GPT4 - 3500 TOKENS)  ├─> Chunk2  ─┤
+    (GPT4 - 3000 TOKENS)  ├─> Chunk2  ─┤
                           ├─> Chunk3  ─┤
                           └─> Chunk N ─┘
 ```
