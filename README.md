@@ -255,8 +255,8 @@ Restart=always
 [Install]
 WantedBy=multi-user.target
 ```
- - You can change the `WorkinDirectory` and `gunicorn` paths to the paths you have set.
- - I suggest the rest of it stay as it is to avoid unwanted errors.
+  - You can change the `WorkinDirectory` and `gunicorn` paths to the paths you have set.
+  - I suggest the rest of it stay as it is to avoid unwanted errors.
 
 - *Step 2:* Starting services
 ```bash
@@ -265,7 +265,7 @@ sudo systemctl daemon-reload
 sudo systemctl start nmapapi
 sudo systemctl enable nmapapi
 ```
- - We are good to go
+  - We are good to go
 
 - *Step 4:* I guess the final step changes per individual it is suggested to setup firewall rules and redirect port 80 to 443
 
