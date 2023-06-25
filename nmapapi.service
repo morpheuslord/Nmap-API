@@ -5,7 +5,7 @@ After=network.target
 [Service]
 User=root
 WorkingDirectory=/
-ExecStart=/usr/local/bin/gunicorn -w 4 wsgi:app
+ExecStart=/usr/local/bin/gunicorn -w 4 -b 0.0.0.0:443 --timeout 2400 --max-requests 0 wsgi:app 
 Restart=always
 
 [Install]

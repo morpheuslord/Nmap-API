@@ -58,9 +58,9 @@ Added GPT functionality with chunking module.
 The methodology is based on how `Langchain GPT embeddings` operate. Basically, the operation goes like this:
 
 ```text
-Data -> Chunks_generator ─┐            ┌─> AI_Loop -> Data_Extraction -> Return_Dat
+Data -> Chunks_generator ─┐            ┌─> AI_Loop -> Data_Extraction -> Return_Data
     (GPT3 - 1500 TOKENS)  ├─> Chunk1  ─┤
-    (GPT4 - 3500 TOKENS)  ├─> Chunk2  ─┤
+    (GPT4 - 3000 TOKENS)  ├─> Chunk2  ─┤
                           ├─> Chunk3  ─┤
                           └─> Chunk N ─┘
 ```
@@ -222,6 +222,52 @@ app.openai.api_key = '__API__KEY__'
 app.start_api()
 
 ```
+
+## Deploy
+
+For deploying the code there are 2 ways we can do that once the API is updated:
+
+### Method 1: Docker Instance
+The docker instance can be built using the provided dockerfile
+```bash
+docker build -t <name> .
+```
+To run the docker instance you can run this:
+```bash
+docker run -p 443:443 <name>
+```
+It's as simple as it is no complications involved.
+
+### Method 2: Server Deploy
+For the server deploying you need first to download the repo to the server and run the following:
+- *Step 1:* Edit The nmap service file
+  - You can change the `WorkinDirectory` and `gunicorn` paths to the paths you have set.
+  - I suggest the rest of it stay as it is to avoid unwanted errors.
+```service
+[Unit]
+Description=Nmap API deployment
+After=network.target
+
+[Service]
+User=root
+WorkingDirectory=/
+ExecStart=/usr/local/bin/gunicorn -w 4 -b 0.0.0.0:443 --timeout 2400 --max-requests 0 wsgi:app 
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+```
+
+- *Step 2:* Starting services
+  - We are good to go
+```bash
+mv nmapapi.service /etc/systemd/system
+sudo systemctl daemon-reload
+sudo systemctl start nmapapi
+sudo systemctl enable nmapapi
+```
+
+- *Step 4:* I guess the final step changes per individual it is suggested to setup firewall rules and redirect port 80 to 443
 
 #### Default User Keys
 **Default_Key**: **cff649285012c6caae4d**
