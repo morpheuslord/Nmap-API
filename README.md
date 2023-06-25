@@ -223,5 +223,50 @@ app.start_api()
 
 ```
 
+## Deploy
+
+For deploying the code there are 2 ways we can do that once the API is updated:
+
+### Method 1: Docker Instance
+The docker instance can be built using the provided dockerfile
+```bash
+docker build -t <name> .
+```
+To run the docker instance you can run this:
+```bash
+docker run -p 443:443 <name>
+```
+It's as simple as it is no complications involved.
+
+### Method 2: Server Deploy
+For the server deploying you need to first download the repo to the server and run the following:
+*Step 1:* Edit The nmap service file
+```bash
+
+```
+
+*Step 1:*
+```bash
+```
+
+*Step 1:*
+```bash
+```
+
+*Step 1:*
+```bash
+```
+
+*Step 1:*
+```bash
+```
+
+*Step 1:*
+```bash
+```
+
+*Step 1:*
+```bash
+```
 #### Default User Keys
 **Default_Key**: **cff649285012c6caae4d**
