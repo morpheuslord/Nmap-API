@@ -10,14 +10,12 @@ from typing import cast
 import nmap
 import openai
 
-from dotenv import load_dotenv
 from flask import Flask
 from flask import render_template
 from flask_restful import Api
 from flask_restful import Resource
 
-load_dotenv()
-openai.api_key = os.getenv('API_KEY')
+openai.api_key = '__API__KEY__'
 model_engine = "text-davinci-003"
 
 app = Flask(__name__)
@@ -277,7 +275,3 @@ api.add_resource(
     p4, "/api/p4/<string:auth>/<string:url>")
 api.add_resource(
     p5, "/api/p5/<string:auth>/<string:url>")
-
-
-if __name__ == '__main__':
-    app.run(host="0.0.0.0", port="80")

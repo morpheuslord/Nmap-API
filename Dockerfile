@@ -1,22 +1,15 @@
 FROM python:3.10
 
-EXPOSE 80
 EXPOSE 443
-EXPOSE 8080
-EXPOSE 8000
 
 RUN mkdir static
 RUN mkdir templates
 ADD app.py .
-ADD bak .
-ADD db.py .
-ADD db.sqlite .
-ADD nmap.xsl .
-ADD Pipfile .
-ADD Procfile .
+ADD auth_keys.db .
 ADD requirements.txt .
-ADD test.py .
 ADD README.md .
+ADD wsgi.py .
+ADD nmapapi.service .
 COPY static /static/
 COPY templates /templates/
 
@@ -24,6 +17,4 @@ RUN apt update && apt upgrade -y
 RUN apt install nmap -y
 RUN pip install -r requirements.txt
 
-ENV OPENAI_API_KEY=''
-
-CMD [ "sh", "-c","python ./app.py ${OPENAI_API_KEY}" ]
+ENTRYPOINT [ "gunicorn", "-w", "4", "-b", "0.0.0.0:443", "--timeout", "2400", "--max-requests", "0", "wsgi:app" ]
