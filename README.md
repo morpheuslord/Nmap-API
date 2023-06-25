@@ -239,34 +239,35 @@ docker run -p 443:443 <name>
 It's as simple as it is no complications involved.
 
 ### Method 2: Server Deploy
-For the server deploying you need to first download the repo to the server and run the following:
-*Step 1:* Edit The nmap service file
-```bash
+For the server deploying you need first to download the repo to the server and run the following:
+- *Step 1:* Edit The nmap service file
+```service
+[Unit]
+Description=Nmap API deployment
+After=network.target
 
-```
+[Service]
+User=root
+WorkingDirectory=/
+ExecStart=/usr/local/bin/gunicorn -w 4 -b 0.0.0.0:443 --timeout 2400 --max-requests 0 wsgi:app 
+Restart=always
 
-*Step 1:*
-```bash
+[Install]
+WantedBy=multi-user.target
 ```
+ - You can change the `WorkinDirectory` and `gunicorn` paths to the paths you have set.
+ - I suggest the rest of it stay as it is to avoid unwanted errors.
 
-*Step 1:*
+- *Step 2:* Starting services
 ```bash
+mv nmapapi.service /etc/systemd/system
+sudo systemctl daemon-reload
+sudo systemctl start nmapapi
+sudo systemctl enable nmapapi
 ```
+ - We are good to go
 
-*Step 1:*
-```bash
-```
+- *Step 4:* I guess the final step changes per individual it is suggested to setup firewall rules and redirect port 80 to 443
 
-*Step 1:*
-```bash
-```
-
-*Step 1:*
-```bash
-```
-
-*Step 1:*
-```bash
-```
 #### Default User Keys
 **Default_Key**: **cff649285012c6caae4d**
