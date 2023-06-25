@@ -45,28 +45,29 @@ This is a implementation for our college PCL project which is still under develo
 #### Auth and User management
 
 ```text
-  GET /register/<int:user_id>/<string:password>
+  GET /register/<int:user_id>/<string:password>/<string:unique_key>
 ```
 | Parameter | Type     | Description                |
 | :-------- | :------- | :------------------------- |
 |`ID`|`Int`|user ID|
 |`Passwd`| `String`| User Passwd|
+|`Unique_Key`| `String`| User Unique_Key|
 
 ## Improvements
 Added GPT functionality with chunking module.
 The methodology is based on how `Langchain GPT embeddings` operate. Basically the operation goes like this:
 
 ```text
-Data -> Chunks_generator ─┐            ┌─> AI_Loop -> Data_Extraction -> Return_Data
-                          ├─> Chunk1  ─┤
-                          ├─> Chunk2  ─┤
+Data -> Chunks_generator ─┐            ┌─> AI_Loop -> Data_Extraction -> Return_Dat
+    (GPT3 - 1500 TOKENS)  ├─> Chunk1  ─┤
+    (GPT4 - 3500 TOKENS)  ├─> Chunk2  ─┤
                           ├─> Chunk3  ─┤
                           └─> Chunk N ─┘
 ```
 
 AI code:
 ```python
-def AI(analize: str) -> dict[str, any]:
+def AI(analyze: str) -> dict[str, any]:
     # Prompt about what the query is all about
     prompt = f"""
         Do a vulnerability analysis report on the following JSON data and
@@ -113,4 +114,5 @@ def AI(analize: str) -> dict[str, any]:
     return ai_output
 ```
 
-**Default_Key**: **e43d4c3b79**
+#### Default User Keys
+**Default_Key**: **cff649285012c6caae4d**

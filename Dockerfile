@@ -24,4 +24,6 @@ RUN apt update && apt upgrade -y
 RUN apt install nmap -y
 RUN pip install -r requirements.txt
 
-CMD [ "python", "./app.py" ]
+ENV OPENAI_API_KEY=''
+
+CMD [ "sh", "-c","python ./app.py ${OPENAI_API_KEY}" ]
