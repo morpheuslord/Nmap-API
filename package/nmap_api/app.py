@@ -208,4 +208,4 @@ api.add_resource(
 
 
 def start_api():
-    app.run(host="0.0.0.0", port="80")
+    app.run(host="0.0.0.0", port="443")

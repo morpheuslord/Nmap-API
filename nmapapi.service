@@ -1,0 +1,12 @@
+[Unit]
+Description=Nmap API deployment
+After=network.target
+
+[Service]
+User=root
+WorkingDirectory=/
+ExecStart=/usr/local/bin/gunicorn -w 4 wsgi:app
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
