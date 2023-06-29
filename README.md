@@ -58,11 +58,19 @@ Added GPT functionality with chunking module.
 The methodology is based on how `Langchain GPT embeddings` operate. Basically, the operation goes like this:
 
 ```text
+Loop Method
 Data -> Chunks_generator ─┐            ┌─> AI_Loop -> Data_Extraction -> Return_Data
     (GPT3 - 1500 TOKENS)  ├─> Chunk1  ─┤
     (GPT4 - 3000 TOKENS)  ├─> Chunk2  ─┤
                           ├─> Chunk3  ─┤
                           └─> Chunk N ─┘
+
+Embeddings Method
+Data -> Chunks_generator ─┐                         ┌─> Vector Database ─> AI_Loop -> Data_Extraction -> Return_Data
+    (GPT3 - 1500 TOKENS)  ├─> Chunk1 ─> Embeddings ─┤
+    (GPT4 - 3000 TOKENS)  ├─> Chunk2 ─> Embeddings ─┤
+                          ├─> Chunk3 ─> Embeddings ─┤
+                          └─> ChunkN ─> Embeddings ─┘
 ```
 this is how to works:
 - **Step 1:**
