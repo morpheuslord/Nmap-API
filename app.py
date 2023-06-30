@@ -11,6 +11,7 @@ import nmap
 import openai
 
 from flask import Flask
+from flask import request
 from flask import render_template
 from flask_restful import Api
 from flask_restful import Resource
@@ -35,41 +36,159 @@ def doc() -> Any:
     return render_template("doc.html")
 
 
-@app.route('/register/<int:user_id>/<string:password>/<string:unique_key>')
-def store_auth_key(user_id: int, password: str, unique_key: str) -> str:
+@app.route('/register', methods=['POST'])
+def store_auth_key():
+    data = request.get_json()
+
+    user_id = data.get('user_id')
+    uname = data.get('username')
+    passwd = data.get('password')
+    u_key = data.get('unique_key')
+    role = data.get('role')
+    priority = data.get('priority')
+
     sanitized_username = user_id
-    sanitized_passwd = password
-    sanitized_key = unique_key
-    # Hash the user's ID, password, and unique key together
+    sanitized_passwd = passwd
+    sanitized_key = u_key
+
     hash = hashlib.sha256()
     hash.update(str(sanitized_username).encode('utf-8'))
     hash.update(sanitized_passwd.encode('utf-8'))
     hash.update(sanitized_key.encode('utf-8'))
-    # Use the hash to generate the auth key
-    auth_key = hash.hexdigest()[:20]  # Get the first 20 characters
+
+    auth_key = hash.hexdigest()[:20]
+
+    user_db_file = 'users.db'
+    conn_user = sqlite3.connect(user_db_file)
+    cursor_user = conn_user.cursor()
+
+    cursor_user.execute('''CREATE TABLE IF NOT EXISTS users
+                        (user_id INT PRIMARY KEY NOT NULL,
+                        username TEXT NOT NULL,
+                        role TEXT NOT NULL,
+                        priority TEXT NOT NULL);''')
+
+    query_user = (
+        "INSERT INTO users "
+        "(user_id, username, role, priority) "
+        "VALUES (?, ?, ?, ?)"
+    )
+    cursor_user.execute(
+        query_user,
+        (sanitized_username, uname, role, priority)
+    )
+
+    conn_user.commit()
+    conn_user.close()
+
     db_file = 'auth_keys.db'
     need_create_table = not os.path.exists(db_file)
-    conn = sqlite3.connect(db_file)
-    cursor = conn.cursor()
+    conn_auth = sqlite3.connect(db_file)
+    cursor_auth = conn_auth.cursor()
+
     if need_create_table:
-        cursor.execute('''CREATE TABLE auth_keys
-                        (user_id INT PRIMARY KEY NOT NULL,
-                        auth_key TEXT NOT NULL,
-                        unique_key TEXT NOT NULL);''')
-    query = (
+        cursor_auth.execute('''CREATE TABLE IF NOT EXISTS auth_keys
+                            (user_id INT PRIMARY KEY NOT NULL,
+                            auth_key TEXT NOT NULL,
+                            unique_key TEXT NOT NULL,
+                            role TEXT NOT NULL,
+                            priority TEXT NOT NULL);''')
+
+    query_auth = (
         "INSERT INTO auth_keys "
-        "(user_id, auth_key, unique_key) "
-        "VALUES (?, ?, ?)"
+        "(user_id, auth_key, unique_key, role, priority) "
+        "VALUES (?, ?, ?, ?, ?)"
     )
-    cursor.execute(
-        query,
-        (sanitized_username, auth_key, sanitized_key)
+    cursor_auth.execute(
+        query_auth,
+        (sanitized_username, auth_key, sanitized_key, priority, priority)
     )
 
-    conn.commit()
-    conn.close()
+    conn_auth.commit()
+    conn_auth.close()
 
     return auth_key
+
+
+@app.route('/getuser/<string:admin_key>')
+def get_all_users(admin_key: str) -> str:
+    conn_auth = sqlite3.connect('auth_keys.db')
+    cursor_auth = conn_auth.cursor()
+    sanitized_key = sanitize(admin_key)
+    query = f"SELECT role FROM auth_keys WHERE auth_key = '{sanitized_key}'"
+    cursor_auth.execute(
+        query
+    )
+    auth_row = cursor_auth.fetchone()
+    if auth_row:
+        conn_users = sqlite3.connect('users.db')
+        cursor_users = conn_users.cursor()
+
+        cursor_users.execute("SELECT * FROM users")
+        rows = cursor_users.fetchall()
+
+        users = []
+        for row in rows:
+            user = {
+                "user_id": row[0],
+                "username": row[1],
+                "role": row[2],
+                "priority": row[3]
+            }
+            users.append(user)
+
+        conn_users.close()
+        conn_auth.close()
+        return json.dumps(users)
+
+    conn_auth.close()
+    return json.dumps({"error": "Unauthorized access. Admin key required."})
+
+
+# Admin : 60e709884276ce6096d1
+@app.route('/rmuser/<int:id>/<string:username>/<string:key>')
+def remove_user(id: int, username: str, key: str) -> Any:
+    conn_auth = sqlite3.connect('auth_keys.db')
+    cursor_auth = conn_auth.cursor()
+
+    cursor_auth.execute(
+        "SELECT user_id, role FROM auth_keys WHERE auth_key = ?", (key,))
+    auth_row = cursor_auth.fetchone()
+
+    if auth_row:
+        role = auth_row[1]
+        if role == "admin":
+            conn_auth.close()
+            pass
+    else:
+        return {"error": "Unauthorized access. Admin key required."}
+
+    conn_users = sqlite3.connect('users.db')
+    cursor_users = conn_users.cursor()
+    conn_auth = sqlite3.connect('auth_keys.db')
+    cursor_auth = conn_auth.cursor()
+
+    cursor_users.execute(
+        "DELETE FROM users WHERE user_id = ? AND username = ?",
+        (id, username)
+    )
+
+    cursor_auth.execute(
+        "DELETE FROM auth_keys WHERE user_id = ?",
+        (id,)
+    )
+
+    conn_users.commit()
+    conn_auth.commit()
+    conn_users.close()
+    conn_auth.close()
+
+    removed_user = {
+        "username": username,
+        "user_id": id
+    }
+
+    return removed_user
 
 
 def to_int(s: str) -> int:
@@ -155,18 +274,37 @@ def AI(analize: str) -> dict[str, Any]:
 
 
 def authenticate(auth_key: str) -> bool:
-    conn = sqlite3.connect('auth_keys.db')
-    cursor = conn.cursor()
+    conn_auth = sqlite3.connect('auth_keys.db')
+    cursor_auth = conn_auth.cursor()
+    conn_users = sqlite3.connect('users.db')
+    cursor_users = conn_users.cursor()
+
     key = sanitize(auth_key)
-    # Check if the given auth_key exists in the database
-    cursor.execute("SELECT 1 FROM auth_keys WHERE auth_key = ?", (key,))
-    row = cursor.fetchone()
-    conn.close()
-    # If the auth_key is found, return True, else False
-    if row:
-        return True
-    else:
-        return False
+
+    # Check if the given auth_key exists in the auth_keys table
+    cursor_auth.execute(
+        "SELECT user_id FROM auth_keys WHERE auth_key = ?", (key,))
+    auth_row = cursor_auth.fetchone()
+
+    if auth_row:
+        user_id = auth_row[0]
+
+        # Check if the user ID exists in the users table
+        cursor_users.execute(
+            "SELECT user_id FROM users WHERE user_id = ?", (user_id,))
+        user_row = cursor_users.fetchone()
+
+        if user_row:
+            # If the user IDs match, return True
+            conn_auth.close()
+            conn_users.close()
+            return True
+
+    conn_auth.close()
+    conn_users.close()
+
+    # Return an error message if the keys provided are incorrect
+    return False
 
 
 def extract_ai_output(ai_output: str) -> dict[str, Any]:
