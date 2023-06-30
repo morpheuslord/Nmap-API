@@ -46,7 +46,7 @@ This is an implementation for our college PCL project which is still under devel
 
 #### Registration
 ```text
-  GET /register
+  POST /register
 ```
 Payload:
 | Parameter | Type     | Description                |
