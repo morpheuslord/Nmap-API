@@ -42,16 +42,51 @@ This is an implementation for our college PCL project which is still under devel
 | `p5`      | `json` | Complete Intense  Scan | `-Pn -sS -sU -T4 -A -PE -PP -PY -g 53 --script=vuln`|
 
 
-#### Auth and User management
+### Auth and User management
 
+#### Registration
 ```text
-  GET /register/<int:user_id>/<string:password>/<string:unique_key>
+  GET /register
+```
+Payload:
+| Parameter | Type     | Description                |
+| :-------- | :------- | :------------------------- |
+|`JSON_Payload`|`JSON`|`PARAMETERS`|
+
+The parameters should look like this while registering a new user:
+```json
+{
+  "user_id": 1,
+  "username": "tim",
+  "role": "user",
+  "priority": "low"
+}
+```
+for a new admin user the role must be changes to admin.
+
+The current default admin user has a key of `60e709884276ce6096d1`
+
+#### Remove user
+```text
+  POST /rmuser/<int:id>/<string:username>/<string:key>
 ```
 | Parameter | Type     | Description                |
 | :-------- | :------- | :------------------------- |
-|`ID`|`Int`|user ID|
-|`Passwd`| `String`| User Passwd|
-|`Unique_Key`| `String`| User Unique_Key|
+|`ID`|`int`|`users id`|
+|`username`|`string`|`username assigned`|
+|`key`|`string`|`admin key`|
+
+for this function to work we need to add the `admin key` and it wont work if the key is not correct.
+
+#### Get users
+```text
+  GET /getuser/<string:admin_key>
+```
+| Parameter | Type     | Description                |
+| :-------- | :------- | :------------------------- |
+|`admin_key`|`string`|`the admin key`|
+
+This is for varifying the users and for implementing the front end section of the code which will be implemented in the future.
 
 ## Improvements
 Added GPT functionality with chunking module.
@@ -278,4 +313,4 @@ sudo systemctl enable nmapapi
 - *Step 4:* I guess the final step changes per individual it is suggested to setup firewall rules and redirect port 80 to 443
 
 #### Default User Keys
-**Default_Key**: **cff649285012c6caae4d**
+**Default_Admin_Key**: **60e709884276ce6096d1**
