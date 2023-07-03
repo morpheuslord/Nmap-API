@@ -4,8 +4,6 @@ import os
 import re
 import sqlite3
 from typing import Any
-from typing import Callable
-from typing import cast
 
 import nmap
 import openai
@@ -235,7 +233,7 @@ def AI(analize: str) -> dict[str, Any]:
         2) Return all the open ports within the open_ports list.
         3) Return all the closed ports within the closed_ports list.
         4) Return all the filtered ports within the filtered_ports list.
-
+        5) Analyze the scores based on the CVE score or the ports opened
         output format: {{
             "open_ports": [],
             "closed_ports": [],
@@ -308,7 +306,7 @@ def authenticate(auth_key: str) -> bool:
 
 
 def extract_ai_output(ai_output: str) -> dict[str, Any]:
-    result = {
+    result: dict[str, Any] = {
         "open_ports": [],
         "closed_ports": [],
         "filtered_ports": [],
@@ -323,18 +321,29 @@ def extract_ai_output(ai_output: str) -> dict[str, Any]:
 
     # If found, convert string of ports to list
     if open_ports_match:
-        result["open_ports"] = list(
-            map(cast(Callable[[Any], str], int),
-                open_ports_match.group(1).split(',')))
+        open_ports_str = open_ports_match.group(1)
+        try:
+            if open_ports_str:
+                result["open_ports"] = list(
+                    map(int, open_ports_str.split(',')))
+        except ValueError:
+            pass
     if closed_ports_match:
-        result["closed_ports"] = list(
-            map(cast(Callable[[Any], str], int),
-                closed_ports_match.group(1).split(',')))
+        closed_ports_str = closed_ports_match.group(1)
+        try:
+            if closed_ports_str:
+                result["closed_ports"] = list(
+                    map(int, closed_ports_str.split(',')))
+        except ValueError:
+            pass
     if filtered_ports_match:
-        result["filtered_ports"] = list(
-            map(cast(Callable[[Any], str], int),
-                filtered_ports_match.group(1).split(',')))
-
+        filtered_ports_str = filtered_ports_match.group(1)
+        try:
+            if filtered_ports_str:
+                result["filtered_ports"] = list(
+                    map(int, filtered_ports_str.split(',')))
+        except ValueError:
+            pass
     # Match and extract criticality score
     criticality_score_match = re.search(
         r'"criticality_score": "([^"]*)"', ai_output)
@@ -354,13 +363,10 @@ def profile(auth: str, url: str, argument: str) -> dict[str, Any]:
         nm.scan('{}'.format(ip), arguments='{}'.format(argument))
         scan_data = nm.analyse_nmap_xml_scan()
         analyze = scan_data["scan"]
-        chunk_data = str(chunk_output(analyze, 500))
-        all_outputs = []
-        for chunks in chunk_data:
-            string_chunks = str(chunks)
-            data = AI(string_chunks)
-            all_outputs.append(data)
-        return json.dumps(all_outputs)
+        converted_data = str(analyze)
+        data = AI(converted_data)
+        return json.dumps(data)
+        # return analyze
 
 
 # Effective  Scan
