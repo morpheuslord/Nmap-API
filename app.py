@@ -227,21 +227,28 @@ def chunk_output(scan_output: dict,
 def AI(analize: str) -> dict[str, Any]:
     # Prompt about what the query is all about
     prompt = f"""
-        Do a vulnerability analysis report on the following JSON data and
-        follow the following rules:
-        1) Calculate the criticality score.
-        2) Return all the open ports within the open_ports list.
-        3) Return all the closed ports within the closed_ports list.
-        4) Return all the filtered ports within the filtered_ports list.
-        5) Analyze the scores based on the CVE score or the ports opened
-        output format: {{
-            "open_ports": [],
-            "closed_ports": [],
-            "filtered_ports": [],
-            "criticality_score": ""
-            }}
+        Do a NMAP scan analysis on the provided NMAP scan information
+        The NMAP output must return in a JSON format accorging to the provided
+        output format. The data must be accurate in regards towards a pentest report.
+        The data must follow the following rules:
+        1) The NMAP scans must be done from a pentester point of view
+        2) The final output must be minimal according to the format given.
+        3) The final output must be kept to a minimal.
+        4) If a value not found in the scan just mention an empty string.
+        5) Analyze everything even the smallest of data.
+        6) Completely analyze the data provided and give a confirm answer using the output format.
 
-        data = {analize}
+        The output format:
+        {{
+            "critical score": [""],
+            "os information": [""],
+            "open ports": [""],
+            "open services": [""],
+            "vulnerable service": [""],
+            "found cve": [""]
+        }}
+
+        NMAP Data to be analyzed: {data}
     """
     try:
         # A structure for the request
