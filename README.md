@@ -1,14 +1,14 @@
 # Nmap API
 
-Uses python3.10, Debian, python-Nmap, and flask framework to create a Nmap API that can do scans with a good speed online and is easy to deploy.
+Uses python3.10, Debian, python-Nmap, and flask framework to create an Nmap API that can do scans with a good speed online and is easy to deploy.
 
-This is a implementation for our college PCL project which is still under development and constantly updating.
+This is an implementation for our college PCL project which is still under development and constantly updating.
 
 ## API Reference
 
 #### Get all items
 
-```http
+```
   GET /api/p1/{auth_key}/{target}
   GET /api/p2/{auth_key}/{target}
   GET /api/p3/{auth_key}/{target}
@@ -23,7 +23,7 @@ This is a implementation for our college PCL project which is still under develo
 
 #### Get item
 
-```http
+```
   GET /api/p1/
   GET /api/p2/
   GET /api/p3/
@@ -57,7 +57,7 @@ This is a implementation for our college PCL project which is still under develo
 
 #### Auth and User management
 
-```http
+```
   GET /register/<int:user_id>/<string:password>
 ```
 
