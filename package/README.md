@@ -1,37 +1,73 @@
+# GPT_Vuln-analyzer
 
-# Nmap API
+This is a Proof Of Concept application that demostrates how AI can be used to generate accurate results for vulnerability analysis and also allows further utilization of the already super useful ChatGPT made using openai-api, python-nmap, dnsresolver python modules and also use customtkinter and tkinter for the GUI version of the code. This project also has a CLI and a GUI interface, It is capable of doing network vulnerability analysis, DNS enumeration and also subdomain enumeration.
 
-Uses python3.10, Debian, python-Nmap, and flask framework to create a Nmap API that can do scans with a good speed online and is easy to deploy.
-The API also includes GPT3 functionality for AI generated reports.
-This is an implementation for our college PCL project which is still under development and constantly updating.
+## Requirements
+- Python 3.10
+- All the packages mentioned in the requirements.txt file
+- OpenAi api
 
+## Usage Package
 
-## API Reference
+### Import packages 
+`pip install GVA`
+or
+`pip3 install GVA`
 
-#### Get all items
+Simple import any of the 3 packages and then add define the variables accordingly
+```python
+from GVA import profile
+from GVA import dns
+from GVA import subdomain
 
-```text
-  GET /api/p1/{auth_key}/{target}
-  GET /api/p2/{auth_key}/{target}
-  GET /api/p3/{auth_key}/{target}
-  GET /api/p4/{auth_key}/{target}
-  GET /api/p5/{auth_key}/{target}
+key = "__API__KEY__"
+profile.openai.api_key = key
+dns.openai.api_key = key
+
+print(profile.p1("<IP>"))
+print(dns.dnsr("<DOMAIN>"))
+subdomain.sub("<DOMAIN>")
 ```
 
-| Parameter | Type     | Description                |
-| :-------- | :------- | :------------------------- |
-| `auth_key` | `string` | **Required**. The API auth key gebe |
-| `target`| `string`| **Required**. The target Hostname and IP|
+## Usage CLI
 
-#### Get item
-
-```text
-  GET /api/p1/
-  GET /api/p2/
-  GET /api/p3/
-  GET /api/p4/
-  GET /api/p5/
+- First Change the "__API__KEY__" part of the code with OpenAI api key
+```python
+akey = "__API__KEY__" # Enter your API key
 ```
+- second install the packages
+```bash
+pip3 install -r requirements.txt
+or
+pip install -r requirements.txt
+```
+- run the code python3 gpt_vuln.py
+```bash
+# Regular Help Menu
+python gpt_vuln.py --help
+
+# Rich Help Menu
+python get_vuln.py --r help
+
+# Specify target with the attack 
+python gpt_vuln.py --target <IP> --attack dns/nmap
+
+# Specify target and profile for nmap
+python get_vuln.py --target <IP> --attack nmap --profile <1-5> 
+(Default:1)
+
+# Specify target for DNS no profile needed
+python get_vuln.py --target <IP or HOSTNAME> --attack dns
+
+# Specify target for Subdomain Enumeration no profile needed
+python get_vuln.py --target <HOSTNAME> --attack sub
+```
+
+Supported in both windows and linux
+    
+## Understanding the code
+
+Profiles:
 
 | Parameter | Return data     | Description | Nmap Command |
 | :-------- | :------- | :-------------------------------- | :---------|
@@ -39,235 +75,144 @@ This is an implementation for our college PCL project which is still under devel
 | `p2`      | `json` | Simple  Scan | `-Pn -T4 -A -v`|
 | `p3`      | `json` | Low Power  Scan | `-Pn -sS -sU -T4 -A -v`|
 | `p4`      | `json` | Partial Intense  Scan | `-Pn -p- -T4 -A -v`|
-| `p5`      | `json` | Complete Intense  Scan | `-Pn -sS -sU -T4 -A -PE -PP -PY -g 53 --script=vuln`|
+| `p5`      | `json` | Complete Intense  Scan | `-Pn -sS -sU -T4 -A -PE -PP -PS80,443 -PA3389 -PU40125 -PY -g 53 --script=vuln`|
 
+The profile is the type of scan that will be executed by the nmap subprocess. The Ip or target will be provided via argparse. At first the custom nmap scan is run which has all the curcial arguments for the scan to continue. nextly the scan data is extracted from the huge pile of data which has been driven by nmap. the "scan" object has a list of sub data under "tcp" each labled according to the ports opened. once the data is extracted the data is sent to openai API davenci model via a prompt. the prompt specifically asks for an JSON output and the data also to be used in a certain manner. 
 
-#### Auth and User management
-
-```text
-  GET /register/<int:user_id>/<string:password>/<string:unique_key>
-```
-| Parameter | Type     | Description                |
-| :-------- | :------- | :------------------------- |
-|`ID`|`Int`|user ID|
-|`Passwd`| `String`| User Passwd|
-|`Unique_Key`| `String`| User Unique_Key|
-
-## Improvements
-Added GPT functionality with chunking module.
-The methodology is based on how `Langchain GPT embeddings` operate. Basically, the operation goes like this:
-
-```text
-Data -> Chunks_generator ─┐            ┌─> AI_Loop -> Data_Extraction -> Return_Data
-    (GPT3 - 1500 TOKENS)  ├─> Chunk1  ─┤
-    (GPT4 - 3000 TOKENS)  ├─> Chunk2  ─┤
-                          ├─> Chunk3  ─┤
-                          └─> Chunk N ─┘
-```
-this is how to works:
-- **Step 1:**
-  - The JSON is done scanning or the text is extracted and converted into a string
-- **Step 2:**
-  - The long string is converted into individual tokens of words and characters for example `[]{};word` == `'[',']','{','}',';','word'`
-- **Step 3:**
-  - The long list of tokens is divided into groups of lists according to how many `tokens` we want.
-  - for our use case we have a prompt and the data extracted and for simplicity, we went with the chunks of `500 tokens` + the prompt tokens.
-- **Step 4:**
-  - Step 4 can be achieved in 3 ways `a) Langchain`, `b) OpenAI functions Feature`, `c) The OpenAI API calls`
-  - From our tests, the first option `Langchain LLM` did not work as it is not built for such processes
-  - The second option `OpenAI functions feature` needed support and more context.
-  - The Third was the best as we can provide the rules and output format for it to give an output.
-- **Step 5:**
-  - The final step is to run the loop and `regex` the output data and return them as an output.
-  - The reason for using regex is that `AI is unpredictable` so we need to take measures to keep our data usable.
-  - The prompt is used as an output format making sure the AI gives that output no matter what so we can easily regex that output.
- 
-
-AI code:
+The entire structure of request that has to be sent to the openai API is designed in the completion section of the Program.
 ```python
-def AI(analyze: str) -> dict[str, any]:
-    # Prompt about what the query is all about
-    prompt = f"""
-        Do a vulnerability analysis report on the following JSON data and
-        follow the following rules:
-        1) Calculate the criticality score.
-        2) Return all the open ports within the open_ports list.
-        3) Return all the closed ports within the closed_ports list.
-        4) Return all the filtered ports within the filtered_ports list.
-
-        output format: {{
-            "open_ports": [],
-            "closed_ports": [],
-            "filtered_ports": [],
-            "criticality_score": ""
-            }}
-
-        data = {analize}
-    """
-    try:
-        # A structure for the request
-        completion = openai.Completion.create(
-            engine=model_engine,
-            prompt=prompt,
-            max_tokens=1024,
-            n=1,
-            stop=None,
-        )
-        response = completion.choices[0].text
-
-        # Assuming extract_ai_output returns a dictionary
-        extracted_data = extract_ai_output(response)
-    except KeyboardInterrupt:
-        print("Bye")
-        quit()
-
-    # Store outputs in a dictionary
-    ai_output = {
-        "open_ports": extracted_data.get("open_ports"),
-        "closed_ports": extracted_data.get("closed_ports"),
-        "filtered_ports": extracted_data.get("filtered_ports"),
-        "criticality_score": extracted_data.get("criticality_score")
+def profile(ip):
+    nm.scan('{}'.format(ip), arguments='-Pn -sS -sU -T4 -A -PE -PP -PS80,443 -PA3389 -PU40125 -PY -g 53 --script=vuln')
+    json_data = nm.analyse_nmap_xml_scan()
+    analize = json_data["scan"]
+    # Prompt about what the quary is all about
+    prompt = "do a vulnerability analysis of {} and return a vulnerabilty report in json".format(analize)
+    # A structure for the request
+    completion = openai.Completion.create(
+        engine=model_engine,
+        prompt=prompt,
+        max_tokens=1024,
+        n=1,
+        stop=None,
+    )
+    response = completion.choices[0].text
+    return response
+```
+### Output
+nmap output:
+```json
+{
+    "Vulnerability Report": {
+        "Target IP": "127.0.0.1",
+        "OS Detected": {
+            "Name": "Microsoft Windows 10 1607",
+            "Accuracy": "100",
+            "CPE": [
+                "cpe:/o:microsoft:windows_10:1607"
+            ]
+        },
+        "Open Ports": {
+            "Port 135": {
+                "State": "open",
+                "Reason": "syn-ack",
+                "Name": "msrpc",
+                "Product": "Microsoft Windows RPC",
+                "Version": "",
+                "Extra Info": "",
+                "Conf": "10",
+                "CPE": "cpe:/o:microsoft:windows"
+            },
+            "Port 445": {
+                "State": "open",
+                "Reason": "syn-ack",
+                "Name": "microsoft-ds",
+                "Product": "",
+                "Version": "",
+                "Extra Info": "",
+                "Conf": "3",
+                "CPE": ""
+            }
+        },
+        "Vulnerabilities": {
+            "Port 135": [],
+            "Port 445": []
+        }
     }
+}
+```
+DNS Output:
+target is google.com
+```json
 
-    return ai_output
+{
+  "A" : { 
+    "ip": "142.250.195.174",
+  },
+  "AAAA": { 
+    "ip": "2404:6800:4007:826::200e"
+  },
+  "NS": {
+    "nameservers": [
+      "ns2.google.com.", 
+      "ns1.google.com.",
+      "ns3.google.com.",
+      "ns4.google.com."
+    ]
+  },
+  "MX" : {
+    "smtp": "10 smtp.google.com."
+  },
+  "SOA" : {
+    "nameserver": "ns1.google.com.",
+    "admin": "dns-admin.google.com.",
+    "serial": "519979037",
+    "refresh": "900",
+    "retry": "900",
+    "expire": "1800",
+    "ttl": "60"
+  },
+  "TXT": {
+    "onetrust-domain-verification": "de01ed21f2fa4d8781cbc3ffb89cf4ef",
+    "webexdomainverification.8YX6G": "6e6922db-e3e6-4a36-904e-a805c28087fa", 
+    "globalsign-smime-dv": "CDYX+XFHUw2wml6/Gb8+59BsH31KzUr6c1l2BPvqKX8=",
+    "google-site-verification": [
+      "wD8N7i1JTNTkezJ49swvWW48f8_9xveREV4oB-0Hf5o", 
+      "TV9-DBe4R80X4v0M4U_bd_J9cpOJM0nikft0jAgjmsQ"
+    ],
+    "docusign": [
+      "05958488-4752-4ef2-95eb-aa7ba8a3bd0e", 
+      "1b0a6754-49b1-4db5-8540-d2c12664b289"
+    ],
+    "atlassian-domain-verification":  "5YjTmWmjI92ewqkx2oXmBaD60Td9zWon9r6eakvHX6B77zzkFQto8PQ9QsKnbf4I",
+    "v=spf1 include:_spf.google.com ~all": "v=spf1 include:_spf.google.com ~all",
+    "facebook-domain-verification": "22rm551cu4k0ab0bxsw536tlds4h95",
+    "MS=E4A68B9AB2BB9670BCE15412F62916164C0B20BB": "MS=E4A68B9AB2BB9670BCE15412F62916164C0B20BB",
+    "apple-domain-verification": "30afIBcvSuDV2PLX"
+  }
+}
 ```
 
-The Prompt, Regex and extraction:
-```python
-    prompt = f"""
-        Do a vulnerability analysis report on the following JSON data provided.
-        It's the data extracted from my network scanner.
-        follow the following rules for analysis:
-        1) Calculate the criticality score based on the service or CVE.
-        2) Return all the open ports within the open_ports list.
-        3) Return all the closed ports within the closed_ports list.
-        4) Return all the filtered ports within the filtered_ports list.
-        6) Keep the highest possible accuracy.
-        7) Do not provide unwanted explanations.
-        8) Only provide details in the output_format provided.
+# Usage GUI
+The GUI uses customtkinter for the running of the code. The interface is straight forward the only thing required to remember is:
+- When using dns attack dont specify the profile
 
-        output_format: {{
-            "open_ports": [],
-            "closed_ports": [],
-            "filtered_ports": [],
-            "criticality_score": ""
-            }}
-
-        data = {analize}
-    """
-```
-
-The above-mentioned prompt as a distinct output format will return this output no matter the instance. These are the following things needed to be addressed:
-- The prompt must be detailed.
-- The prompt must explain all sorts of use cases and inputs.
-- The prompt must be guided with rules to follow.
-- The number of tokens must be monitored and taken care of.
-
-This is the regex for it: 
-```python
-def extract_ai_output(ai_output: str) -> dict[str, Any]:
-    result = {
-        "open_ports": [],
-        "closed_ports": [],
-        "filtered_ports": [],
-        "criticality_score": ""
-    }
-
-    # Match and extract ports
-    open_ports_match = re.search(r'"open_ports": \[([^\]]*)\]', ai_output)
-    closed_ports_match = re.search(r'"closed_ports": \[([^\]]*)\]', ai_output)
-    filtered_ports_match = re.search(
-        r'"filtered_ports": \[([^\]]*)\]', ai_output)
-
-    # If found, convert string of ports to list
-    if open_ports_match:
-        result["open_ports"] = list(
-            map(cast(Callable[[Any], str], int),
-                open_ports_match.group(1).split(',')))
-    if closed_ports_match:
-        result["closed_ports"] = list(
-            map(cast(Callable[[Any], str], int),
-                closed_ports_match.group(1).split(',')))
-    if filtered_ports_match:
-        result["filtered_ports"] = list(
-            map(cast(Callable[[Any], str], int),
-                filtered_ports_match.group(1).split(',')))
-
-    # Match and extract criticality score
-    criticality_score_match = re.search(
-        r'"criticality_score": "([^"]*)"', ai_output)
-    if criticality_score_match:
-        result["criticality_score"] = criticality_score_match.group(1)
-
-    return result
-```
-The regex makes sure all the data is extracted and returned properly within the proper type we wanted. 
-This also helps with the data management and removal of unwanted information.
-
-API Key must be mentioned
-```python
-openai.api_key = '__API__KEY__'
-```
-
-### Package
-The package is a simple extension for future usage or upgrades it can be installed by running:
 ```bash
-cd package && pip install .
-```
-The Usage can be implemented like this:
-```python
-from nmap_api import app
-
-app.openai.api_key = '__API__KEY__'
-app.start_api()
-
+python GVA_gui.py
 ```
 
-## Deploy
+### main window
+![main](https://user-images.githubusercontent.com/70637311/228863455-993e0a21-c06c-44c7-87e6-68d758a78e2c.jpeg)
 
-For deploying the code there are 2 ways we can do that once the API is updated:
+### output_DNS
+![dns_output](https://user-images.githubusercontent.com/70637311/228863540-553f8560-fdf5-48f7-96e8-1f831ab3a8f2.png)
 
-### Method 1: Docker Instance
-The docker instance can be built using the provided dockerfile
-```bash
-docker build -t <name> .
-```
-To run the docker instance you can run this:
-```bash
-docker run -p 443:443 <name>
-```
-It's as simple as it is no complications involved.
+### output_nmap
+![nmap_output](https://user-images.githubusercontent.com/70637311/228863611-5d8380f0-28d5-4925-9ad3-62cd28a1ecd4.png)
 
-### Method 2: Server Deploy
-For the server deploying you need first to download the repo to the server and run the following:
-- *Step 1:* Edit The nmap service file
-  - You can change the `WorkinDirectory` and `gunicorn` paths to the paths you have set.
-  - I suggest the rest of it stay as it is to avoid unwanted errors.
-```service
-[Unit]
-Description=Nmap API deployment
-After=network.target
+## Advantage
 
-[Service]
-User=root
-WorkingDirectory=/
-ExecStart=/usr/local/bin/gunicorn -w 4 -b 0.0.0.0:443 --timeout 2400 --max-requests 0 wsgi:app 
-Restart=always
-
-[Install]
-WantedBy=multi-user.target
-```
-
-- *Step 2:* Starting services
-  - We are good to go
-```bash
-mv nmapapi.service /etc/systemd/system
-sudo systemctl daemon-reload
-sudo systemctl start nmapapi
-sudo systemctl enable nmapapi
-```
-
-- *Step 4:* I guess the final step changes per individual it is suggested to setup firewall rules and redirect port 80 to 443
-
-#### Default User Keys
-**Default_Key**: **cff649285012c6caae4d**
+- Can be used in developing a more advanced systems completly made of the API and scanner combination
+- Has the capability to analize DNS information and reslove Mustiple records it a more better format.
+- Can increase the effectiveness of the final system
+- Can also perform subdomain enumeration
+- Highly productive when working with models such as GPT3

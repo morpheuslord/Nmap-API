@@ -1,231 +1,224 @@
-import hashlib
-import json
-import os
-import re
-import sqlite3
-from typing import Any
-
 import nmap
+import sqlite3
+import re
 import openai
+import hashlib
+import requests
+import jsonify
+import docker
+import atexit
+import psutil
+import os
+from dotenv import load_dotenv
+from contextlib import contextmanager
+from flask import Flask, render_template
+from flask_restful import Api, Resource
 
-from flask import Flask
-from flask import request
-from flask import render_template
-from flask_restful import Api
-from flask_restful import Resource
-
-openai.api_key = '__API__KEY__'
-model_engine = "text-davinci-003"
+load_dotenv()
+openai.api_key = os.getenv("OPENAI_API_KEY")
+IMAGE_NAME = os.getenv("IMAGE_NAME")
+BASE_PORT = os.getenv("BASE_PORT")
+NUM_INSTANCES = os.getenv("NUM_INSTANCES")
+model_engine = "gpt-3.5-turbo-0613"
 
 app = Flask(__name__)
 api = Api(app)
 
 nm = nmap.PortScanner()
+started_containers = []
+last_used_instance = 0
+client = docker.from_env()
 
 
-# Index and Docx page
 @app.route('/', methods=['GET'])
-def home() -> Any:
+def home():
     return render_template("index.html")
 
 
 @app.route('/doc', methods=['GET'])
-def doc() -> Any:
+def doc():
     return render_template("doc.html")
 
 
-@app.route('/register', methods=['POST'])
-def store_auth_key():
-    data = request.get_json()
-
-    user_id = data.get('user_id')
-    uname = data.get('username')
-    passwd = data.get('password')
-    u_key = data.get('unique_key')
-    role = data.get('role')
-    priority = data.get('priority')
-
-    sanitized_username = user_id
-    sanitized_passwd = passwd
-    sanitized_key = u_key
-
-    hash = hashlib.sha256()
-    hash.update(str(sanitized_username).encode('utf-8'))
-    hash.update(sanitized_passwd.encode('utf-8'))
-    hash.update(sanitized_key.encode('utf-8'))
-
-    auth_key = hash.hexdigest()[:20]
-
-    user_db_file = 'users.db'
-    conn_user = sqlite3.connect(user_db_file)
-    cursor_user = conn_user.cursor()
-
-    cursor_user.execute('''CREATE TABLE IF NOT EXISTS users
-                        (user_id INT PRIMARY KEY NOT NULL,
-                        username TEXT NOT NULL,
-                        role TEXT NOT NULL,
-                        priority TEXT NOT NULL);''')
-
-    query_user = (
-        "INSERT INTO users "
-        "(user_id, username, role, priority) "
-        "VALUES (?, ?, ?, ?)"
-    )
-    cursor_user.execute(
-        query_user,
-        (sanitized_username, uname, role, priority)
-    )
-
-    conn_user.commit()
-    conn_user.close()
-
+@contextmanager
+def get_db_connection():
     db_file = 'auth_keys.db'
-    need_create_table = not os.path.exists(db_file)
-    conn_auth = sqlite3.connect(db_file)
-    cursor_auth = conn_auth.cursor()
+    conn = sqlite3.connect(db_file)
+    try:
+        cursor = conn.cursor()
+        cursor.execute('''CREATE TABLE IF NOT EXISTS auth_keys (
+                          user_id INT PRIMARY KEY NOT NULL,
+                          auth_key TEXT NOT NULL,
+                          unique_key TEXT NOT NULL);''')
+        conn.commit()
 
-    if need_create_table:
-        cursor_auth.execute('''CREATE TABLE IF NOT EXISTS auth_keys
-                            (user_id INT PRIMARY KEY NOT NULL,
-                            auth_key TEXT NOT NULL,
-                            unique_key TEXT NOT NULL,
-                            role TEXT NOT NULL,
-                            priority TEXT NOT NULL);''')
+        yield conn
+    finally:
+        conn.close()
 
-    query_auth = (
-        "INSERT INTO auth_keys "
-        "(user_id, auth_key, unique_key, role, priority) "
-        "VALUES (?, ?, ?, ?, ?)"
-    )
-    cursor_auth.execute(
-        query_auth,
-        (sanitized_username, auth_key, sanitized_key, priority, priority)
-    )
 
-    conn_auth.commit()
-    conn_auth.close()
+def sanitize(input_string: str) -> str:
+    patterns_to_remove = [
+        r";",
+        r"'",
+        r'"',
+        r"\b(SELECT|UPDATE|DELETE|INSERT|DROP|ALTER|CREATE|TABLE|DATABASE)\b",
+        r"--",
+        r"\b(OR|AND)\b.{0,20}?=",
+        r"%"
+    ]
+
+    sanitized_string = input_string
+    for pattern in patterns_to_remove:
+        sanitized_string = re.sub(
+            pattern, "", sanitized_string, flags=re.IGNORECASE)
+
+    return sanitized_string
+
+
+@app.route('/register/<int:user_id>/<string:password>/<string:unique_key>')
+def store_auth_key(user_id, password, unique_key):
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        hash = hashlib.sha256()
+        hash.update(str(user_id).encode('utf-8'))
+        hash.update(password.encode('utf-8'))
+        hash.update(unique_key.encode('utf-8'))
+        auth_key = hash.hexdigest()[:20]
+        cursor.execute("SELECT 1 FROM auth_keys WHERE user_id = ?", (user_id,))
+        if cursor.fetchone():
+            return jsonify({"error": "User ID already exists"})
+        cursor.execute(
+            "INSERT INTO auth_keys (user_id, auth_key, unique_key) VALUES (?, ?, ?)",
+            (user_id, auth_key, unique_key)
+        )
+        conn.commit()
 
     return auth_key
 
 
-@app.route('/getuser/<string:admin_key>')
-def get_all_users(admin_key: str) -> str:
-    conn_auth = sqlite3.connect('auth_keys.db')
-    cursor_auth = conn_auth.cursor()
-    sanitized_key = sanitize(admin_key)
-    query = f"SELECT role FROM auth_keys WHERE auth_key = '{sanitized_key}'"
-    cursor_auth.execute(
-        query
-    )
-    auth_row = cursor_auth.fetchone()
-    if auth_row:
-        conn_users = sqlite3.connect('users.db')
-        cursor_users = conn_users.cursor()
-
-        cursor_users.execute("SELECT * FROM users")
-        rows = cursor_users.fetchall()
-
-        users = []
-        for row in rows:
-            user = {
-                "user_id": row[0],
-                "username": row[1],
-                "role": row[2],
-                "priority": row[3]
-            }
-            users.append(user)
-
-        conn_users.close()
-        conn_auth.close()
-        return json.dumps(users)
-
-    conn_auth.close()
-    return json.dumps({"error": "Unauthorized access. Admin key required."})
+def authenticate(auth_key):
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute(
+            "SELECT 1 FROM auth_keys WHERE auth_key = ?", (
+                sanitize(auth_key),)
+        )
+        return cursor.fetchone() is not None
 
 
-# Admin : 60e709884276ce6096d1
-@app.route('/rmuser/<int:id>/<string:username>/<string:key>')
-def remove_user(id: int, username: str, key: str) -> Any:
-    conn_auth = sqlite3.connect('auth_keys.db')
-    cursor_auth = conn_auth.cursor()
+def cleanup_containers():
+    client = docker.from_env()
+    for container_id in started_containers:
+        try:
+            container = client.containers.get(container_id)
+            container.stop()
+            container.remove()
+            print(f"Stopped and removed container {container_id}")
+        except Exception as e:
+            print(f"Error stopping/removing container {container_id}: {e}")
 
-    cursor_auth.execute(
-        "SELECT user_id, role FROM auth_keys WHERE auth_key = ?", (key,))
-    auth_row = cursor_auth.fetchone()
 
-    if auth_row:
-        role = auth_row[1]
-        if role == "admin":
-            conn_auth.close()
-            pass
-    else:
-        return {"error": "Unauthorized access. Admin key required."}
+def deploy_docker_instances(image_name, start_port, num_instances):
+    client = docker.from_env()
+    for i in range(num_instances):
+        host_port = start_port + i
+        container_port = '5000/tcp'
+        port_bindings = {container_port: host_port}
+        container = client.containers.run(
+            image_name, detach=True, ports=port_bindings)
+        print(
+            f"Started container {container.short_id} on host port {host_port} mapped to container port 5000")
+        started_containers.append(container.id)
+    atexit.register(cleanup_containers)
 
-    conn_users = sqlite3.connect('users.db')
-    cursor_users = conn_users.cursor()
-    conn_auth = sqlite3.connect('auth_keys.db')
-    cursor_auth = conn_auth.cursor()
 
-    cursor_users.execute(
-        "DELETE FROM users WHERE user_id = ? AND username = ?",
-        (id, username)
-    )
+def get_total_resource_usage():
+    total_memory_usage = 0
+    total_cpu_usage = 0
 
-    cursor_auth.execute(
-        "DELETE FROM auth_keys WHERE user_id = ?",
-        (id,)
-    )
+    for container in client.containers.list():
+        stats = container.stats(stream=False)
+        memory_usage = stats['memory_stats']['usage']
+        total_memory_usage += memory_usage
 
-    conn_users.commit()
-    conn_auth.commit()
-    conn_users.close()
-    conn_auth.close()
+        cpu_delta = stats['cpu_stats']['cpu_usage']['total_usage'] - \
+            stats['precpu_stats']['cpu_usage']['total_usage']
+        system_delta = stats['cpu_stats']['system_cpu_usage'] - \
+            stats['precpu_stats']['system_cpu_usage']
+        if system_delta > 0.0 and cpu_delta > 0.0:
+            cpu_usage = (cpu_delta / system_delta) * \
+                len(stats['cpu_stats']['cpu_usage']['percpu_usage'])
+            total_cpu_usage += cpu_usage
 
-    removed_user = {
-        "username": username,
-        "user_id": id
+    return total_memory_usage, total_cpu_usage
+
+
+@app.route('/checkup')
+def monitor_and_manage_containers():
+    CLEAN_NEEDED = "NO"
+    total_memory_usage, total_cpu_usage = get_total_resource_usage()
+
+    total_available_memory = psutil.virtual_memory().total
+    total_available_cpu = psutil.cpu_count()
+
+    memory_usage_percent = (total_memory_usage / total_available_memory) * 100
+    cpu_usage_percent = (total_cpu_usage / total_available_cpu) * 100
+    print("Total Available CPU: {total_available_cpu}")
+    print("Total Available RAM: {total_available_memory}")
+    print("Total Usage CPU: {total_cpu_usage}")
+    print("Total Usage RAM: {total_memory_usage}")
+    print("Total Usage CPU %: {cpu_usage_percent}")
+    print("Total Usage RAM %: {memory_usage_percent}")
+
+    print(
+        f"Memory Usage: {memory_usage_percent}%, CPU Usage: {cpu_usage_percent}%")
+
+    if memory_usage_percent > 50 or cpu_usage_percent > 50:
+        cleanup_containers()
+        deploy_docker_instances(IMAGE_NAME, BASE_PORT, NUM_INSTANCES)
+        CLEAN_NEEDED = "YES"
+    return {
+        "Total Available CPU": f"{total_available_cpu}",
+        "Total Available RAM": f"{total_available_memory}",
+        "Total Usage CPU": f"{total_cpu_usage}",
+        "Total Usage RAM": f"{total_memory_usage}",
+        "Total Usage CPU %": f"{cpu_usage_percent}",
+        "Total Usage RAM %": f"{memory_usage_percent}",
+        "CLEANUP NEEDED": f"{CLEAN_NEEDED}",
     }
 
-    return removed_user
 
+def profile(auth, url, profile):
+    global last_used_instance
 
-def to_int(s: str) -> int:
-    return int(s)
+    if not authenticate(auth):
+        return {"error": "Authentication failed"}
+    base_url = "http://127.0.0.1"
+    start_port = 5001
+    num_instances = 10
+    selected_instance = (last_used_instance + 1) % num_instances
+    last_used_instance = selected_instance
+    port = start_port + selected_instance
+    full_url = f"{base_url}:{port}/api/{profile}/{url}"
 
-
-def sanitize(input_string: str) -> str:
-    if not re.match("^[a-zA-Z0-9]*$", input_string):
-        raise ValueError("Invalid characters in string")
-    else:
-        return input_string
-
-
-def chunk_output(scan_output: dict,
-                 max_token_size: int) -> list[dict[str, Any]]:
-    output_chunks = []
-    current_chunk = {}
-    current_token_count = 0
-
-    # Convert JSON to AI usable chunks
-    for ip, scan_data in scan_output.items():
-        new_data_token_count = len(json.dumps({ip: scan_data}).split())
-
-        if current_token_count + new_data_token_count <= max_token_size:
-            current_chunk[ip] = scan_data
-            current_token_count += new_data_token_count
+    try:
+        response = requests.get(full_url)
+        if response.status_code == 200:
+            data = response.json()
+            d = str(data.get("scan", {}))
+            return AI(d)
         else:
-            output_chunks.append(current_chunk)
-            current_chunk = {ip: scan_data}
-            current_token_count = new_data_token_count
-    # The Chunks list that is returned
-    if current_chunk:
-        output_chunks.append(current_chunk)
+            print(f"Error from server: {response.status_code}")
+            return {
+                "error": f"Server responded with status code {response.status_code}"
+            }
+    except requests.RequestException as e:
+        print(f"Request failed: {e}")
+        return {"error": "Request failed"}
 
-    return output_chunks
 
-
-def AI(analize: str) -> dict[str, Any]:
-    # Prompt about what the query is all about
+def AI(analize: str) -> dict[str, any]:
     prompt = f"""
         Do a NMAP scan analysis on the provided NMAP scan information
         The NMAP output must return in a JSON format accorging to the provided
@@ -248,181 +241,31 @@ def AI(analize: str) -> dict[str, Any]:
             "found cve": [""]
         }}
 
-        NMAP Data to be analyzed: {data}
+        NMAP Data to be analyzed: {analize}
     """
-    try:
-        # A structure for the request
-        completion = openai.Completion.create(
-            engine=model_engine,
-            prompt=prompt,
-            max_tokens=1024,
-            n=1,
-            stop=None,
-        )
-        response = completion.choices[0]['text']
-
-        # Assuming extract_ai_output returns a dictionary
-        extracted_data = extract_ai_output(response)
-    except KeyboardInterrupt:
-        print("Bye")
-        quit()
-
-    # Store outputs in a dictionary
+    messages = [{"content": prompt, "role": "assistant"}]
+    response = openai.ChatCompletion.create(
+        model=model_engine,
+        messages=messages,
+        max_tokens=2500,
+        n=1,
+        stop=None,
+    )
+    response = response['choices'][0]['message']['content']
     ai_output = {
-        "open_ports": extracted_data.get("open_ports"),
-        "closed_ports": extracted_data.get("closed_ports"),
-        "filtered_ports": extracted_data.get("filtered_ports"),
-        "criticality_score": extracted_data.get("criticality_score")
+        "markdown": response
     }
 
     return ai_output
 
 
-def authenticate(auth_key: str) -> bool:
-    conn_auth = sqlite3.connect('auth_keys.db')
-    cursor_auth = conn_auth.cursor()
-    conn_users = sqlite3.connect('users.db')
-    cursor_users = conn_users.cursor()
-
-    key = sanitize(auth_key)
-
-    # Check if the given auth_key exists in the auth_keys table
-    cursor_auth.execute(
-        "SELECT user_id FROM auth_keys WHERE auth_key = ?", (key,))
-    auth_row = cursor_auth.fetchone()
-
-    if auth_row:
-        user_id = auth_row[0]
-
-        # Check if the user ID exists in the users table
-        cursor_users.execute(
-            "SELECT user_id FROM users WHERE user_id = ?", (user_id,))
-        user_row = cursor_users.fetchone()
-
-        if user_row:
-            # If the user IDs match, return True
-            conn_auth.close()
-            conn_users.close()
-            return True
-
-    conn_auth.close()
-    conn_users.close()
-
-    # Return an error message if the keys provided are incorrect
-    return False
+class ScanAPI(Resource):
+    def get(self, auth, url, scan_type):
+        return profile(
+            auth=auth,
+            profile=scan_type,
+            url=url
+        )
 
 
-def extract_ai_output(ai_output: str) -> dict[str, Any]:
-    result: dict[str, Any] = {
-        "open_ports": [],
-        "closed_ports": [],
-        "filtered_ports": [],
-        "criticality_score": ""
-    }
-
-    # Match and extract ports
-    open_ports_match = re.search(r'"open_ports": \[([^\]]*)\]', ai_output)
-    closed_ports_match = re.search(r'"closed_ports": \[([^\]]*)\]', ai_output)
-    filtered_ports_match = re.search(
-        r'"filtered_ports": \[([^\]]*)\]', ai_output)
-
-    # If found, convert string of ports to list
-    if open_ports_match:
-        open_ports_str = open_ports_match.group(1)
-        try:
-            if open_ports_str:
-                result["open_ports"] = list(
-                    map(int, open_ports_str.split(',')))
-        except ValueError:
-            pass
-    if closed_ports_match:
-        closed_ports_str = closed_ports_match.group(1)
-        try:
-            if closed_ports_str:
-                result["closed_ports"] = list(
-                    map(int, closed_ports_str.split(',')))
-        except ValueError:
-            pass
-    if filtered_ports_match:
-        filtered_ports_str = filtered_ports_match.group(1)
-        try:
-            if filtered_ports_str:
-                result["filtered_ports"] = list(
-                    map(int, filtered_ports_str.split(',')))
-        except ValueError:
-            pass
-    # Match and extract criticality score
-    criticality_score_match = re.search(
-        r'"criticality_score": "([^"]*)"', ai_output)
-    if criticality_score_match:
-        result["criticality_score"] = criticality_score_match.group(1)
-
-    return result
-
-
-def profile(auth: str, url: str, argument: str) -> dict[str, Any]:
-    ip = url
-    # Nmap Execution command
-    usernamecheck = authenticate(auth)
-    if usernamecheck is False:
-        return {"error": "passwd or username error"}
-    else:
-        nm.scan('{}'.format(ip), arguments='{}'.format(argument))
-        scan_data = nm.analyse_nmap_xml_scan()
-        analyze = scan_data["scan"]
-        converted_data = str(analyze)
-        data = AI(converted_data)
-        return json.dumps(data)
-        # return analyze
-
-
-# Effective  Scan
-class p1(Resource):
-    def get(self, auth, url):
-        argument = '-Pn -sV -T4 -O -F'
-        scan = profile(auth, url, argument)
-        return scan
-
-
-# Simple Scan
-class p2(Resource):
-    def get(self, auth, url):
-        argument = '-Pn -T4 -A -v'
-        scan = profile(auth, url, argument)
-        return scan
-
-
-# Low Power Scan
-class p3(Resource):
-    def get(self, auth, url):
-        argument = '-Pn -sS -sU -T4 -A -v'
-        scan = profile(auth, url, argument)
-        return scan
-
-
-# partial Intense Scan
-class p4(Resource):
-    def get(self, auth, url):
-        argument = '-Pn -p- -T4 -A -v'
-        scan = profile(auth, url, argument)
-        return scan
-
-
-# Complete Intense scan
-class p5(Resource):
-    def get(self, auth, url):
-        argument = '-Pn -sS -sU -T4 -A -PE -PP -PY -g 53 --script=vuln'
-        scan = profile(auth, url, argument)
-        return scan
-
-
-api.add_resource(
-    p1, "/api/p1/<string:auth>/<string:url>")
-api.add_resource(
-    p2, "/api/p2/<string:auth>/<string:url>")
-api.add_resource(
-    p3, "/api/p3/<string:auth>/<string:url>")
-api.add_resource(
-    p4, "/api/p4/<string:auth>/<string:url>")
-api.add_resource(
-    p5, "/api/p5/<string:auth>/<string:url>")
+api.add_resource(ScanAPI, "/api/<string:scan_type>/<string:auth>/<string:url>")

@@ -12,7 +12,7 @@ $(document).ready(function(){
     });
 });
 
-var width = $(window).width();
+var width = $(window).width(); 
 
 window.onscroll = function(){
 if ((width >= 900)){
