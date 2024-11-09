@@ -1,3 +1,4 @@
+# need to change the prod to work well
 import os
 from app import app, deploy_docker_instances
 from dotenv import load_dotenv
